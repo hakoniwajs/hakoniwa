@@ -2,8 +2,12 @@
 import { describe, expect, it } from "vitest";
 import {
   cookieNames,
+  hasAmbiguousAuthCookies,
   hasAuthCookie,
+  needsSessionVerification,
   planGatewayRequest,
+  revOf,
+  revSetCookie,
   toBrowserResponse,
   toCacheableResponse,
   toDirectResponse,
@@ -149,6 +153,131 @@ describe("planGatewayRequest (HTML のページ)", () => {
     ).toBe("direct");
     const head = planGatewayRequest(new Request("https://hako.example/games", { method: "HEAD" }));
     expect(head.kind === "cached" && head.method).toBe("HEAD");
+  });
+});
+
+describe("planGatewayRequest (ログイン中のページ)", () => {
+  const NOW = 1_800_000_000_000;
+  const session = { sessionId: "sess-1", expiresAt: NOW + 200_000 };
+  const cookie = "hako.session_token=tok.sig; hako.session_data=data; theme=dark; hako_rev=abc123";
+  const get = (path: string, headers: Record<string, string> = { cookie }) =>
+    new Request(`https://hako.example${path}`, { headers });
+
+  it("needsSessionVerification: better-auth の Cookie を持つ GET/HEAD のキャッシュ対象のページだけ", () => {
+    for (const path of ["/games", "/games/1", "/games/1/islands/2", "/games/1/my-island"]) {
+      expect(needsSessionVerification(get(path)), path).toBe(true);
+    }
+    for (const path of [
+      "/",
+      "/admin",
+      "/account",
+      "/login",
+      "/api/auth/get-session",
+      "/games/1/islands/2/ogp.png",
+    ]) {
+      expect(needsSessionVerification(get(path)), path).toBe(false);
+    }
+    expect(needsSessionVerification(get("/games/1", { cookie: "theme=dark" }))).toBe(false);
+    expect(
+      needsSessionVerification(
+        new Request("https://hako.example/games/1", { method: "POST", headers: { cookie } }),
+      ),
+    ).toBe(false);
+  });
+
+  it("検証済みのセッションなら、セッションごとの props で CachedPages 経由にする", () => {
+    const plan = planGatewayRequest(get("/games/1/my-island?x=1"), { session, now: NOW });
+    expect(plan.kind).toBe("cached");
+    if (plan.kind !== "cached") {
+      return;
+    }
+    expect(plan.props).toEqual({
+      v: 1,
+      viewer: "session",
+      sessionId: "sess-1",
+      rev: "abc123",
+      origin: "https://hako.example",
+    });
+    expect(plan.cacheKey).toBe("/games/1/my-island");
+    expect(plan.url).toBe("https://hako.example/games/1/my-island");
+    // DO には better-auth の Cookie だけを渡す。
+    expect(plan.headers.get("cookie")).toBe("hako.session_token=tok.sig; hako.session_data=data");
+  });
+
+  it("トップだけ ?notice=no_island を残す", () => {
+    const top = planGatewayRequest(get("/games/1?notice=no_island&x=1"), { session, now: NOW });
+    expect(top.kind === "cached" && top.cacheKey).toBe("/games/1?notice=no_island");
+    const island = planGatewayRequest(get("/games/1/islands/2?notice=no_island"), {
+      session,
+      now: NOW,
+    });
+    expect(island.kind === "cached" && island.cacheKey).toBe("/games/1/islands/2");
+  });
+
+  it("セッションが検証できない・期限が近い・対象外のパスなら DO へ直接転送する", () => {
+    expect(planGatewayRequest(get("/games/1"), { now: NOW }).kind).toBe("direct");
+    expect(
+      planGatewayRequest(get("/games/1"), {
+        session: { sessionId: "sess-1", expiresAt: NOW + 5_000 },
+        now: NOW,
+      }).kind,
+    ).toBe("direct");
+    expect(
+      planGatewayRequest(get("/games/1"), {
+        session: { sessionId: "", expiresAt: NOW + 200_000 },
+        now: NOW,
+      }).kind,
+    ).toBe("direct");
+    for (const path of ["/admin", "/account", "/login", "/auth/x", "/api/auth/get-session", "/"]) {
+      expect(planGatewayRequest(get(path), { session, now: NOW }).kind, path).toBe("direct");
+    }
+  });
+
+  it("better-auth の Cookie があいまい (重複・分割と非分割の混在) なら検証もキャッシュもしない", () => {
+    for (const ambiguous of [
+      `${cookie}; hako.session_token=other.sig`,
+      `${cookie}; hako.session_data.0=part`,
+    ]) {
+      const request = get("/games/1", { cookie: ambiguous });
+      expect(hasAmbiguousAuthCookies(request)).toBe(true);
+      expect(needsSessionVerification(request)).toBe(false);
+      expect(planGatewayRequest(request, { session, now: NOW }).kind).toBe("direct");
+    }
+    expect(hasAmbiguousAuthCookies(get("/games/1"))).toBe(false);
+    expect(
+      hasAmbiguousAuthCookies(
+        get("/games/1", { cookie: "hako.session_data.0=a; hako.session_data.1=b" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("別のセッションなら props が違う (キャッシュを共有しない)", () => {
+    const a = planGatewayRequest(get("/games/1"), { session, now: NOW });
+    const b = planGatewayRequest(get("/games/1"), {
+      session: { sessionId: "sess-2", expiresAt: NOW + 200_000 },
+      now: NOW,
+    });
+    expect(a.kind === "cached" && a.props).not.toEqual(b.kind === "cached" && b.props);
+  });
+});
+
+describe("hako_rev", () => {
+  it("revOf は形の正しい値だけを返す", () => {
+    const req = (cookie: string) => new Request("https://hako.example/", { headers: { cookie } });
+    expect(revOf(new Request("https://hako.example/"))).toBe("");
+    expect(revOf(req("hako_rev=m1abc"))).toBe("m1abc");
+    expect(revOf(req("hako_rev=M1ABC"))).toBe("");
+    expect(revOf(req("hako_rev=a;b"))).toBe("a");
+    expect(revOf(req(`hako_rev=${"a".repeat(17)}`))).toBe("");
+  });
+
+  it("revSetCookie", () => {
+    expect(revSetCookie("m1abc", false)).toBe(
+      "hako_rev=m1abc; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax",
+    );
+    expect(revSetCookie("m1abc", true)).toBe(
+      "hako_rev=m1abc; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax; Secure",
+    );
   });
 });
 

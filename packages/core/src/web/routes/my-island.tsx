@@ -12,6 +12,7 @@ import {
   parseNameForm,
 } from "../forms/island-forms.ts";
 import { listIslandSelectOptions, requireGameIdParam } from "./helpers.ts";
+import { gameCacheTag, pageCacheDirectives, setCacheHint } from "../cache-hint.ts";
 import { renderPage } from "./render.tsx";
 import { MyIslandPage } from "../views/my-island.tsx";
 import { TopPage } from "../views/top.tsx";
@@ -24,6 +25,14 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
     const gameId = requireGameIdParam(c);
     const vm = deps.gameService.openOwnerPage(c.get("user"), gameId);
     const targets = listIslandSelectOptions(deps.gameService, gameId);
+    // 開発画面は島主本人にしか見えない。Cloudflare 版はセッションごとの props でキャッシュを分ける
+    // (自分の操作は POST のたびに変わる props (rev) で反映する)。
+    setCacheHint(
+      c,
+      deps,
+      pageCacheDirectives({ game: vm.game, season: vm.season, now: deps.clock.now() }),
+      [gameCacheTag(gameId)],
+    );
     return renderPage(
       c,
       deps,

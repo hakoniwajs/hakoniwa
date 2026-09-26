@@ -85,7 +85,7 @@ Worker の設定 (環境変数と secret) は、Cloudflare ダッシュボード
 
 ## 表示の速さ (キャッシュ)
 
-未ログインのトップページ・観光ページ・ゲーム一覧は、Cloudflare の [Workers Cache](https://developers.cloudflare.com/workers/cache/) に自動でキャッシュされます。追加の設定は不要です。仕組みは [キャッシュの仕組み](/development/cache) を参照してください。
+トップページ・観光ページ・ゲーム一覧・開発画面は、Cloudflare の [Workers Cache](https://developers.cloudflare.com/workers/cache/) に自動でキャッシュされます (ログイン中のページはセッションごとに分けてキャッシュします)。追加の設定は不要です。仕組みは [キャッシュの仕組み](/development/cache) を参照してください。
 
 :::note
 以前のバージョンで KV 名前空間 (`SNAPSHOT`) を設定していた場合は、`wrangler.jsonc` の `kv_namespaces` と環境変数 `HAKONIWA_SNAPSHOT_TTL_SEC`・`HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` を削除して構いません (残っていても使われません)。KV 名前空間自体も `npx wrangler kv namespace delete` で削除できます。

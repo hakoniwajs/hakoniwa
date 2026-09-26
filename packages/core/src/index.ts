@@ -250,7 +250,17 @@ export { loadConfigFromEnv } from "./bootstrap/config-from-env.ts";
 export type { BuildDepsInput, BuiltDeps } from "./bootstrap/build-deps.ts";
 export { buildDeps } from "./bootstrap/build-deps.ts";
 export type { CreateAuthInput } from "./bootstrap/auth.ts";
-export { createAuth } from "./bootstrap/auth.ts";
+export {
+  AUTH_COOKIE_PREFIX,
+  authCookieNames,
+  createAuth,
+  SESSION_COOKIE_CACHE_MAX_AGE_SEC,
+} from "./bootstrap/auth.ts";
+export type {
+  VerifiedSessionCookie,
+  VerifySessionCookieCacheInput,
+} from "./bootstrap/session-cookie-cache.ts";
+export { verifySessionCookieCache } from "./bootstrap/session-cookie-cache.ts";
 export { devLoginPlugin } from "./bootstrap/dev-login-plugin.ts";
 export { createCsrfToken, verifyCsrfToken } from "./bootstrap/csrf.ts";
 export { AUTH_SECRET_SETTINGS_KEY, resolveAuthSecret } from "./bootstrap/auth-secret.ts";

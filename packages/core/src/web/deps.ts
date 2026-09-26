@@ -39,4 +39,10 @@ export interface WebDeps {
    * Cloudflare 版だけが使う (省略時は付けない)。
    */
   cacheHints?: boolean;
+  /**
+   * true なら better-auth のセッションの Cookie キャッシュを有効にしている
+   * (`createAuth({ sessionCookieCache: true })`)。session ミドルウェアの挙動が変わる。
+   * Cloudflare 版だけが使う (省略時は false)。
+   */
+  sessionCookieCache?: boolean;
 }
