@@ -49,11 +49,11 @@ export function createApp(deps: WebDeps): Hono<AppEnv> {
   // trustedOrigins による Origin 検証も better-auth 側の責務)。
   app.on(["GET", "POST"], "/api/auth/*", (c) => deps.auth.handler(c.req.raw));
 
-  app.use("*", sessionMiddleware({ auth: deps.auth, adminEmails: deps.config.auth.adminEmails }));
+  app.use("*", sessionMiddleware({ auth: deps.auth, adminPolicy: deps.adminPolicy }));
   app.use(
     "*",
     csrfMiddleware({
-      secret: deps.config.auth.secret,
+      secret: deps.authSecret,
       ...(deps.config.auth.baseUrl !== undefined ? { baseUrl: deps.config.auth.baseUrl } : {}),
       gameConfig: deps.config.game,
     }),

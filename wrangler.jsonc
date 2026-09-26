@@ -42,8 +42,12 @@
   "triggers": {
     "crons": ["*/15 * * * *"],
   },
-  // 非秘密の設定値。秘密情報は `wrangler secret put <NAME>` で登録する (README 参照):
-  //   wrangler secret put HAKONIWA_AUTH_SECRET
+  // 非秘密の設定値。Deploy to Cloudflare の入力項目を減らすため、コードの既定値と同じものは
+  // 書いていない (HAKONIWA_MAIL_FROM, HAKONIWA_DEV_LOGIN, HAKONIWA_MAX_CATCH_UP_TURNS (Workers 版の
+  // 既定は 3), HAKONIWA_SNAPSHOT_TTL_SEC, HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC など)。変えたい
+  // 場合だけここに追加する。
+  // 秘密情報はすべて任意で、使う場合は `wrangler secret put <NAME>` で登録する (README 参照):
+  //   wrangler secret put HAKONIWA_AUTH_SECRET  (未設定なら初回起動時に自動生成して保存する)
   //   wrangler secret put HAKONIWA_X_CLIENT_ID
   //   wrangler secret put HAKONIWA_X_CLIENT_SECRET
   //   wrangler secret put HAKONIWA_DISCORD_CLIENT_ID
@@ -56,10 +60,10 @@
     // 新しいデータを作るときの1ターンの長さ (秒) の既定値。以後は管理画面「ゲーム設定」/
     // CLI game set-unit-time で変更する (この値を変えても既存データには影響しない)。
     "HAKONIWA_UNIT_TIME_SEC": "21600",
-    "HAKONIWA_MAX_CATCH_UP_TURNS": "3",
-    "HAKONIWA_ADMIN_EMAILS": "",
-    "HAKONIWA_MAIL_FROM": "hakoniwa@example.com",
-    "HAKONIWA_DEV_LOGIN": "false",
+    // 管理者は、デプロイ後にログインして /admin/setup を開き、Workers のログに出力される
+    // セットアップコードを入力すると登録できる (以後は管理画面の「管理者」節で追加・削除する)。
+    // メールアドレスで固定したい場合は従来どおりここに追加してもよい (カンマ区切り):
+    //   "HAKONIWA_ADMIN_EMAILS": "you@example.com",
     // 開始時刻と最終ターン (シーズン)。空文字列なら「現在時刻を切り下げ」「無期限」が既定になる。
     // 管理画面の初期化フォーム・CLI db init の既定値としても使われる。
     "HAKONIWA_START_AT": "",
@@ -73,9 +77,9 @@
     "HAKONIWA_EMAIL": "",
     "HAKONIWA_BBS_URL": "",
     "HAKONIWA_TOPPAGE_URL": "",
-    // tmp/21-kv-snapshot-cache.md: KV スナップショットキャッシュの TTL (秒)。SNAPSHOT
-    // (上記 kv_namespaces) が未バインドなら無視される。既定のままで問題無ければ削除してもよい。
-    "HAKONIWA_SNAPSHOT_TTL_SEC": "60",
-    "HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC": "2592000",
+    // tmp/21-kv-snapshot-cache.md: KV スナップショットキャッシュの TTL (秒) は既定値
+    // (60 / 2592000) で十分なので書いていない。変える場合だけ追加する:
+    //   "HAKONIWA_SNAPSHOT_TTL_SEC": "60",
+    //   "HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC": "2592000",
   },
 }

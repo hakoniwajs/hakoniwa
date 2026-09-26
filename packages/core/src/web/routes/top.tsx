@@ -16,7 +16,15 @@ export function createTopRoutes(deps: WebDeps): Hono<AppEnv> {
     const gameId = deps.gameService.getCurrentGameId();
     if (gameId === undefined) {
       const user = c.get("user");
-      return renderPage(c, deps, <NoGamePage isAdmin={user?.isAdmin ?? false} />);
+      return renderPage(
+        c,
+        deps,
+        <NoGamePage
+          isAdmin={user?.isAdmin ?? false}
+          needsAdminSetup={deps.config.adminEnabled && deps.adminPolicy.needsSetup()}
+          loggedIn={user !== undefined}
+        />,
+      );
     }
     return c.redirect(`/games/${gameId}`, 302);
   });

@@ -31,7 +31,7 @@ function setup(options: { devLogin?: boolean } = {}) {
     HAKONIWA_BASE_URL: "http://localhost:5173",
     HAKONIWA_DEV_LOGIN: options.devLogin === false ? "false" : "true",
   });
-  const auth = createAuth({ driver, config, mailer, authMethods });
+  const auth = createAuth({ driver, config, secret: AUTH_SECRET, mailer, authMethods });
   return { driver, mailer, settings, authMethods, auth };
 }
 

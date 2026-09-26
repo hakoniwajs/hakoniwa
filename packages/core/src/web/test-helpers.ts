@@ -1,4 +1,5 @@
 // web 層テスト用の共通セットアップ。*.test.tsx ではないので vitest には拾われない。
+import { AdminPolicy } from "../app/admin-policy.ts";
 import { AdminService } from "../app/admin-service.ts";
 import { AuthMethodPolicy } from "../app/auth-methods.ts";
 import type { AuthMethodsFlags } from "../app/auth-methods.ts";
@@ -157,6 +158,11 @@ export interface TestApp {
   gameService: GameService;
   turnService: TurnService;
   adminService: AdminService;
+  adminPolicy: AdminPolicy;
+  settings: FakeSettingsRepository;
+  logger: FakeLogger;
+  /** CSRF トークンの HMAC 鍵 (buildDeps の resolveAuthSecret 相当の解決済みの値)。 */
+  authSecret: string;
   auth: FakeAuth;
 }
 
@@ -187,7 +193,6 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
     game,
     auth: {
       baseUrl: "http://localhost:5173",
-      secret: "test-secret",
       devLogin: options.devLogin ?? false,
       adminEmails: options.adminEmails ?? [],
     },
@@ -201,10 +206,13 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
   const gameService = new GameService({ repo, clock, config: game, rng, ngWords: config.ngWords });
 
   const turnService = new TurnService({ repo, config: game, rng, backupStore, logger });
+  const settings = new FakeSettingsRepository();
   const authMethods = new AuthMethodPolicy({
     configured: { x: false, discord: false, email: true, ...options.authMethodsConfigured },
-    settings: new FakeSettingsRepository(),
+    settings,
   });
+  const adminPolicy = new AdminPolicy({ envEmails: config.auth.adminEmails, settings });
+  const authSecret = "test-secret";
   const adminService = new AdminService({
     repo,
     clock,
@@ -219,14 +227,29 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
     gameService,
     turnService,
     adminService,
+    adminPolicy,
     config,
+    authSecret,
     clock,
     auth: auth as unknown as WebDeps["auth"],
     logger,
   };
   const app = createApp(deps);
 
-  return { app, repo, clock, config, gameService, turnService, adminService, auth };
+  return {
+    app,
+    repo,
+    clock,
+    config,
+    gameService,
+    turnService,
+    adminService,
+    adminPolicy,
+    settings,
+    logger,
+    authSecret,
+    auth,
+  };
 }
 
 /** 現在のゲーム ID。tmp/18-games.md 対応でテストの repo アクセスに gameId が要る箇所用。 */
@@ -254,7 +277,7 @@ export async function loginAs(
   accounts: FakeLinkedAccount[] = [],
 ): Promise<{ cookie: string; csrfToken: string; user: FakeSessionUser }> {
   const { cookieHeader, sessionId } = testApp.auth.login(user, accounts);
-  const csrfToken = await createCsrfToken(testApp.config.auth.secret, sessionId);
+  const csrfToken = await createCsrfToken(testApp.authSecret, sessionId);
   return { cookie: cookieHeader, csrfToken, user };
 }
 

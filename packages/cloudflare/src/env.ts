@@ -16,6 +16,7 @@ export interface Env {
   // 以下は vars (wrangler.jsonc) または `wrangler secret put` で設定する。
   // すべて loadConfigFromEnv (@hakoniwajs/core) がそのまま読む文字列環境変数。
   HAKONIWA_BASE_URL?: string;
+  /** 任意。未設定なら初回起動時に自動生成して DO の settings 表に保存する。 */
   HAKONIWA_AUTH_SECRET?: string;
   HAKONIWA_X_CLIENT_ID?: string;
   HAKONIWA_X_CLIENT_SECRET?: string;
@@ -24,12 +25,14 @@ export interface Env {
   HAKONIWA_RESEND_API_KEY?: string;
   HAKONIWA_MAIL_FROM?: string;
   HAKONIWA_DEV_LOGIN?: string;
+  /** 任意。未設定でも `/admin/setup` とセットアップコード (ログに出力) で最初の管理者を登録できる。 */
   HAKONIWA_ADMIN_EMAILS?: string;
   HAKONIWA_NG_WORDS?: string;
   HAKONIWA_ADMIN_ENABLED?: string;
   HAKONIWA_DEBUG?: string;
   HAKONIWA_USE_LBBS?: string;
   HAKONIWA_UNIT_TIME_SEC?: string;
+  /** 未設定なら Workers 版の既定値 3 (game-object.ts の WORKERS_DEFAULT_MAX_CATCH_UP_TURNS)。 */
   HAKONIWA_MAX_CATCH_UP_TURNS?: string;
   HAKONIWA_SITE_TITLE?: string;
   HAKONIWA_ADMIN_NAME?: string;

@@ -32,15 +32,38 @@ function ManualGuide() {
 
 /**
  * ゲームが 1 つも無いときのトップ画面。tmp/18-games.md「ルート」節: `GET /` がゲーム未開始時に
- * 表示する画面。管理者には `/admin` への案内を出す。
+ * 表示する画面。管理者には `/admin` への案内を出す。管理者が 1 人もいなければ (デプロイ直後)
+ * 初期設定 (`/admin/setup`) への案内を出す。
  */
-export function NoGamePage({ isAdmin }: { isAdmin: boolean }) {
+export function NoGamePage({
+  isAdmin,
+  needsAdminSetup = false,
+  loggedIn = false,
+}: {
+  isAdmin: boolean;
+  /** 管理者が 1 人もいない (app/admin-policy.ts の needsSetup)。 */
+  needsAdminSetup?: boolean;
+  loggedIn?: boolean;
+}) {
   return (
     <div class="no-game-page">
       <p class="big">ゲームはまだ開始されていません。</p>
       {isAdmin ? (
         <p>
           <a href="/admin">管理画面</a>から新しいゲームを開始できます。
+        </p>
+      ) : needsAdminSetup ? (
+        <p>
+          管理者がまだ設定されていません。サーバーの運用者の方は、
+          {loggedIn ? (
+            ""
+          ) : (
+            <>
+              <a href="/login">ログイン</a>してから
+            </>
+          )}
+          <a href="/admin/setup">管理者の初期設定</a>
+          を行ってください (セットアップコードはサーバーのログに出力されます)。
         </p>
       ) : (
         ""

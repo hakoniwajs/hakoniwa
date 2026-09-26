@@ -15,14 +15,14 @@ VPS や自宅サーバーなど、自分で管理しているサーバーで動�
 
 ```sh
 npm install @hakoniwajs/node
-HAKONIWA_AUTH_SECRET=xxxx HAKONIWA_ADMIN_EMAILS=you@example.com npx hakoniwa serve
+npx hakoniwa serve
 ```
 
 `@hakoniwajs/node` をインストールすると `hakoniwa` コマンドが使えるようになり、`serve` サブコマンドで HTTP サーバーが起動します (既定のポートは 3000。`PORT` で変更できます)。
 
-- `HAKONIWA_AUTH_SECRET` は必須です。`openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列を指定してください
-- 管理画面 (`/admin`) を使うには `HAKONIWA_ADMIN_EMAILS` に自分のメールアドレスを指定してください
 - データベースは既定で `./data/hakoniwa.sqlite` に作られます (`HAKONIWA_DB_PATH` で変更できます)
+- ログインのセッションなどに使う秘密鍵 (`HAKONIWA_AUTH_SECRET`) は、未設定なら初回の起動時に自動で生成されてデータベースに保存されます
+- 最初の管理者は、ログインしてから `/admin/setup` を開き、サーバーのコンソールに出力されるセットアップコードを入力すると登録できます。`HAKONIWA_ADMIN_EMAILS=you@example.com` のように環境変数で指定しておくこともできます
 
 設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
 

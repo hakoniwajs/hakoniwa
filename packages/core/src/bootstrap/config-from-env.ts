@@ -16,12 +16,19 @@ export interface AuthConfig {
    * 明示したい場合だけ HAKONIWA_BASE_URL を設定する。
    */
   baseUrl?: string;
-  /** better-auth の secret と CSRF トークンの HMAC 鍵。 */
-  secret: string;
+  /**
+   * better-auth の secret と CSRF トークンの HMAC 鍵 (`HAKONIWA_AUTH_SECRET`)。任意。
+   * 未設定なら buildDeps が初回起動時に生成して settings 表に保存したものを使う
+   * (bootstrap/auth-secret.ts の resolveAuthSecret。解決済みの値は `BuiltDeps.authSecret`)。
+   */
+  secret?: string;
   x?: OAuthClientConfig;
   discord?: OAuthClientConfig;
   devLogin: boolean;
-  /** 管理者メール一覧 (小文字化はしない。isAdminEmail 側で比較時に小文字化する)。 */
+  /**
+   * `HAKONIWA_ADMIN_EMAILS` 由来の管理者メール一覧 (小文字化はしない。isAdminEmail 側で比較時に
+   * 小文字化する)。管理画面で追加した管理者 (settings 表) と合わせた判定は app/admin-policy.ts。
+   */
   adminEmails: string[];
 }
 
@@ -154,12 +161,6 @@ function loadMailConfig(env: Record<string, string | undefined>): MailConfig {
 function loadAuthConfig(env: Record<string, string | undefined>): AuthConfig {
   const baseUrl = nonEmpty(env.HAKONIWA_BASE_URL);
   const secret = nonEmpty(env.HAKONIWA_AUTH_SECRET);
-  if (secret === undefined) {
-    throw new Error(
-      "loadConfigFromEnv: HAKONIWA_AUTH_SECRET is required. " +
-        "generate one with: openssl rand -base64 32",
-    );
-  }
   const x = parseOAuthClientConfig(
     "HAKONIWA_X",
     env.HAKONIWA_X_CLIENT_ID,
@@ -175,7 +176,7 @@ function loadAuthConfig(env: Record<string, string | undefined>): AuthConfig {
 
   return {
     ...(baseUrl !== undefined ? { baseUrl } : {}),
-    secret,
+    ...(secret !== undefined ? { secret } : {}),
     ...(x !== undefined ? { x } : {}),
     ...(discord !== undefined ? { discord } : {}),
     devLogin,

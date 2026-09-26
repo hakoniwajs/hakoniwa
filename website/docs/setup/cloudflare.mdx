@@ -30,21 +30,20 @@ sidebar:
   <Step title="Deploy to Cloudflare ボタンを押す">
     上のボタンを押すと Cloudflare のダッシュボードに移動します。GitHub と連携し、テンプレートリポジトリをコピーする先 (自分のアカウントやリポジトリ名) を選びます。
   </Step>
-  <Step title="秘密鍵と管理者のメールアドレスを入力する">
-    変数・secret の入力画面が表示されるので、最低限次の 2 つを入力します。
-
-    - `HAKONIWA_AUTH_SECRET`: ログインのセッションなどに使う秘密鍵です。`openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列を入力します
-    - `HAKONIWA_ADMIN_EMAILS`: 管理者にするメールアドレスです。X ログインはメールアドレスを返さないため、Discord ログインかメールログインで使うアドレスを指定してください
-
-    その他の項目 (サイト名やフッタの表示など) は、あとから変更できます。
-  </Step>
   <Step title="デプロイを実行する">
-    デプロイが完了すると、`https://<名前>.<サブドメイン>.workers.dev` 形式の公開 URL が表示されます。
-  </Step>
-  <Step title="管理者としてログインする">
-    公開 URL の `/login` を開き、「メールでログイン」に手順 2 で指定したメールアドレスを入力します。
+    **入力が必要な項目はありません。** そのままデプロイを実行してください。デプロイが完了すると、`https://<名前>.<サブドメイン>.workers.dev` 形式の公開 URL が表示されます。
 
-    メール送信サービス ([Resend](https://resend.com/)) をまだ設定していない場合、メールは送信されず、**ログイン用のリンクが Worker のログに出力されます**。Cloudflare ダッシュボードで当該 Worker の「Logs」(リアルタイムログ) を開くか、`npx wrangler tail` を実行してリンクを確認し、ブラウザで開いてください。
+    ログインのセッションなどに使う秘密鍵は、初回の起動時に自動で生成されて保存されます。
+  </Step>
+  <Step title="ログインする">
+    公開 URL の `/login` を開き、「メールでログイン」に自分のメールアドレスを入力します。
+
+    メール送信サービス ([Resend](https://resend.com/)) をまだ設定していないので、メールは送信されず、**ログイン用のリンクが Worker のログに出力されます**。Cloudflare ダッシュボードで当該 Worker の「Logs」(リアルタイムログ) を開くか、`npx wrangler tail` を実行してリンクを確認し、ブラウザで開いてください。
+  </Step>
+  <Step title="最初の管理者になる">
+    ログインしたまま `/admin` を開くと、管理者がまだいないので `/admin/setup` (初期セットアップ) に移動します。このとき **セットアップコードが Worker のログに出力されます**。ログに表示された `XXXX-XXXX-XXXX-XXXX-XXXX` 形式のコードを入力すると、ログイン中のアカウントが管理者になります。
+
+    Worker のログを見られるのは Cloudflare アカウントの持ち主だけなので、公開 URL を知っている他人が先に管理者になってしまうことはありません。初期セットアップは管理者が 1 人もいないときだけ使えます。
   </Step>
   <Step title="ゲームを開始する">
     `/admin` を開き、「新しいゲームを開始」でゲームを始めます。ゲーム名・開始日時・最終ターン・1 ターンの長さを指定できます (すべて省略可能)。
@@ -62,9 +61,11 @@ sidebar:
 
 手順は [ログイン方法の設定](/setup/login-methods) を参照してください。
 
+ほかの人も管理者にしたい場合は、管理画面の「管理者」からメールアドレスを追加できます。
+
 ## 設定を変更する
 
-Worker の設定 (環境変数と secret) は、Cloudflare ダッシュボードの当該 Worker の「Settings → Variables and Secrets」から変更できます。設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
+Worker の設定 (環境変数と secret) は、Cloudflare ダッシュボードの当該 Worker の「Settings → Variables and Secrets」から変更できます。X / Discord ログインの secret などはここで登録します。設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
 
 コピーされたテンプレートリポジトリの `wrangler.jsonc` を編集して push すれば、Workers Builds により自動で再デプロイされます。
 

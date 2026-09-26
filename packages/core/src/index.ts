@@ -144,6 +144,13 @@ export { isAdminEmail, toAuthUser } from "./app/auth.ts";
 export type { AuthMethodKind, AuthMethodsFlags, AuthMethodPolicyDeps } from "./app/auth-methods.ts";
 export { AuthMethodPolicy } from "./app/auth-methods.ts";
 
+export type { AdminEmailsVM, AdminPolicyDeps } from "./app/admin-policy.ts";
+export {
+  ADMIN_EMAILS_SETTINGS_KEY,
+  ADMIN_SETUP_CODE_SETTINGS_KEY,
+  AdminPolicy,
+} from "./app/admin-policy.ts";
+
 export {
   MAX_NAME_LEN,
   MAX_COMMENT_LEN,
@@ -237,6 +244,7 @@ export type { CreateAuthInput } from "./bootstrap/auth.ts";
 export { createAuth } from "./bootstrap/auth.ts";
 export { devLoginPlugin } from "./bootstrap/dev-login-plugin.ts";
 export { createCsrfToken, verifyCsrfToken } from "./bootstrap/csrf.ts";
+export { AUTH_SECRET_SETTINGS_KEY, resolveAuthSecret } from "./bootstrap/auth-secret.ts";
 export type { AuthMethodOfInput } from "./bootstrap/auth-method-of.ts";
 export { authMethodOf } from "./bootstrap/auth-method-of.ts";
 export type { ResendMailerConfig } from "./bootstrap/mailer.ts";

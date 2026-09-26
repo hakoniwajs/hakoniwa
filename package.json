@@ -26,10 +26,10 @@
   "cloudflare": {
     "bindings": {
       "HAKONIWA_AUTH_SECRET": {
-        "description": "**必須。** better-auth の secret と CSRF トークンの HMAC 鍵です。`openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列を入力してください。"
+        "description": "任意。未設定なら初回起動時に自動生成して保存します。明示したい場合は `openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列を指定してください (better-auth の secret と CSRF トークンの HMAC 鍵です)。"
       },
       "HAKONIWA_ADMIN_EMAILS": {
-        "description": "管理者とみなすメールアドレス (カンマ区切り)。管理画面 (`/admin`) に入るために使います。X ログインはメールアドレスを返さないため、管理者にする予定のアカウントは Discord ログインかメールログインのアドレスを指定してください。"
+        "description": "管理者とみなすメールアドレス (カンマ区切り)。任意。未設定でも、デプロイ後にログインして `/admin/setup` を開き、Workers のログに出力されるセットアップコードを入力すれば最初の管理者になれます (以後は管理画面から管理者を追加・削除できます)。X ログインはメールアドレスを返さないため、管理者にする予定のアカウントは Discord ログインかメールログインのアドレスを指定してください。"
       },
       "HAKONIWA_X_CLIENT_ID": {
         "description": "X (Twitter) ログインを有効にする場合に指定します。[X Developer Portal](https://developer.x.com/) でアプリを作成し、コールバック URL として `https://あなたのWorkerのURL/api/auth/callback/twitter` を登録してください。`HAKONIWA_X_CLIENT_SECRET` と両方揃えると有効になります。"
@@ -44,13 +44,7 @@
         "description": "Discord ログイン用のクライアントシークレット。`HAKONIWA_DISCORD_CLIENT_ID` を参照してください。"
       },
       "HAKONIWA_RESEND_API_KEY": {
-        "description": "メールログイン (マジックリンク) で実際にメールを送る場合に指定します ([Resend](https://resend.com/) の API キー)。任意。未設定の場合はログにリンクを出力するだけの開発用 Mailer になります。"
-      },
-      "HAKONIWA_MAIL_FROM": {
-        "description": "メールの送信元アドレス。任意 (既定値は `hakoniwa@example.com`)。`HAKONIWA_RESEND_API_KEY` を設定する場合に合わせて指定してください。"
-      },
-      "HAKONIWA_DEV_LOGIN": {
-        "description": "開発ログイン (任意のメールアドレスでログインできる機能) の有効/無効。**本番では必ず `false`** のままにしてください。"
+        "description": "メールログイン (マジックリンク) で実際にメールを送る場合に指定します ([Resend](https://resend.com/) の API キー)。任意。未設定の場合はログにリンクを出力するだけの開発用 Mailer になります。送信元アドレスは変数 `HAKONIWA_MAIL_FROM` で指定できます (既定値は `hakoniwa@example.com`)。"
       },
       "HAKONIWA_SITE_TITLE": {
         "description": "サイトタイトル (ヘッダやページタイトルに表示)。任意 (既定値は `箱庭諸島２`)。"
@@ -78,12 +72,6 @@
       },
       "HAKONIWA_TIMEZONE": {
         "description": "日時の入力・表示に使うタイムゾーン (IANA タイムゾーン名)。任意 (既定値は Asia/Tokyo)。"
-      },
-      "HAKONIWA_SNAPSHOT_TTL_SEC": {
-        "description": "未ログインのトップ・観光ページを Workers KV にキャッシュする機能 (`kv_namespaces` の SNAPSHOT。未設定でも動作します) の短期 TTL (秒)。任意 (既定値は 60)。進行中/開始前のゲームのページと、終了済みの島ページに使います。Workers KV の最小 TTL が 60 秒のため、それ未満を指定しても 60 に切り上げられます。"
-      },
-      "HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC": {
-        "description": "上記キャッシュ機能の長期 TTL (秒)。任意 (既定値は 2592000 = 30日)。過去のゲームや、終了済みのゲームのトップページのように二度と変わらないページに使います。"
       }
     }
   }

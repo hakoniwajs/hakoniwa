@@ -16,9 +16,9 @@
 // 応答する (`tryServeFromSnapshot`)。HTML 自体はキャッシュしない (`Cache-Control` は従来どおり
 // `private, no-store`) ので、「次のターンまであと N 分」はリクエスト時刻で再計算され古くならない。
 // 対象外・KV 未バインド・キャッシュにも DO にも無ければ、従来どおり DO への HTTP 転送に委ねる。
-import { loadConfigFromEnv, renderIslandPageHtml, renderTopPageHtml } from "@hakoniwajs/core";
+import { renderIslandPageHtml, renderTopPageHtml } from "@hakoniwajs/core";
 import type { Env } from "./env.ts";
-import { HakoniwaGame, pickStringEnv } from "./game-object.ts";
+import { HakoniwaGame, loadWorkerConfig } from "./game-object.ts";
 import { fromIslandPageSnapshotVM, islandSnapshotKey, topSnapshotKey } from "./snapshot.ts";
 import type { IslandPageSnapshotEnvelope, TopPageSnapshotEnvelope } from "./snapshot.ts";
 
@@ -121,7 +121,7 @@ async function tryServeFromSnapshot(
     return undefined;
   }
 
-  const config = loadConfigFromEnv(pickStringEnv(env));
+  const config = loadWorkerConfig(env);
   const now = Math.floor(Date.now() / 1000);
 
   if (topMatch !== null) {

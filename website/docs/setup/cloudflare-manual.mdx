@@ -44,24 +44,23 @@ export default createWorker();
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HakoniwaGame"] }],
   // ターン進行のトリガー (15 分ごと)
   "triggers": { "crons": ["*/15 * * * *"] },
+  // 管理者のメールアドレスを固定したい場合だけ書く (省略した場合は /admin/setup で登録する)
   "vars": {
     "HAKONIWA_ADMIN_EMAILS": "you@example.com",
-    "HAKONIWA_DEV_LOGIN": "false",
   },
 }
 ```
 
 `name` は Worker の名前 (公開 URL の `https://<name>.<サブドメイン>.workers.dev` の部分) になります。必要に応じて書き換えてください。
 
-## secret を登録してデプロイする
+## デプロイする
 
 ```sh
 npx wrangler login
-npx wrangler secret put HAKONIWA_AUTH_SECRET
 npx wrangler deploy
 ```
 
-`HAKONIWA_AUTH_SECRET` には `openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列を入力します。
+必須の secret はありません。ログインのセッションなどに使う秘密鍵 (`HAKONIWA_AUTH_SECRET`) は、未設定なら初回の起動時に自動で生成されて Durable Object に保存されます。自分で管理したい場合は `npx wrangler secret put HAKONIWA_AUTH_SECRET` で登録してください (`openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列)。
 
 X / Discord ログインやメール送信を使う場合は、次の secret も登録します (詳しくは [ログイン方法の設定](/setup/login-methods))。
 
@@ -76,10 +75,10 @@ npx wrangler secret put HAKONIWA_RESEND_API_KEY
 ## 設定の書き方
 
 - 秘密でない設定 (`HAKONIWA_ADMIN_EMAILS` など) は `wrangler.jsonc` の `vars` に書きます
-- 秘密の設定 (`HAKONIWA_AUTH_SECRET` など) は `wrangler secret put` で登録します
-- `HAKONIWA_DEV_LOGIN` (任意のメールアドレスでログインできる開発用機能) は、本番では必ず `false` のままにしてください
+- 秘密の設定 (`HAKONIWA_DISCORD_CLIENT_SECRET` など) は `wrangler secret put` で登録します
+- `HAKONIWA_DEV_LOGIN` (任意のメールアドレスでログインできる開発用機能) は、本番では設定しないでください (既定で無効です)
 - カスタムドメインを使う場合だけ `HAKONIWA_BASE_URL` を `vars` に追加します (通常は不要です)
 
 設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
 
-デプロイ後の手順 (ログインしてゲームを開始する) は [ワンクリックデプロイの手順 4 以降](/setup/cloudflare#手順) と同じです。
+デプロイ後の手順 (ログインして管理者になり、ゲームを開始する) は [ワンクリックデプロイの手順 3 以降](/setup/cloudflare#手順) と同じです。`HAKONIWA_ADMIN_EMAILS` を設定した場合は、そのメールアドレスでログインすればすぐに管理者になれます。

@@ -171,6 +171,24 @@ function parseCheckbox(body: Record<string, string>, name: string): boolean {
   return field(body, name) !== "";
 }
 
+/** 管理画面「管理者」節の追加・削除フォーム (`email`)。空欄なら invalid_input。 */
+export function parseAdminEmailForm(body: Record<string, string>): string {
+  const email = field(body, "email").trim();
+  if (email === "") {
+    throw new AppError("invalid_input", "email is required");
+  }
+  return email;
+}
+
+/** 管理者の初期セットアップフォーム (`/admin/setup` の `code`)。空欄なら invalid_input。 */
+export function parseAdminSetupForm(body: Record<string, string>): string {
+  const code = field(body, "code").trim();
+  if (code === "") {
+    throw new AppError("invalid_input", "code is required");
+  }
+  return code;
+}
+
 /** 管理画面のログイン方法トグルフォーム。 */
 export function parseAuthMethodsForm(body: Record<string, string>): AuthMethodsFlags {
   return {

@@ -7,14 +7,14 @@ sidebar:
 
 Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wrangler.jsonc` の `vars` か secret (`wrangler secret put` やダッシュボード) に設定します。
 
-**ほとんどの項目は省略できます。** 最低限必要なのは `HAKONIWA_AUTH_SECRET` と、管理画面を使うための `HAKONIWA_ADMIN_EMAILS` だけです。
+**すべての項目は省略できます。** 何も設定しなくても起動し、ログインのための秘密鍵は自動で生成され、最初の管理者は `/admin/setup` で登録できます。環境変数が必要になるのは、X / Discord ログインやメール送信のように外部サービスの secret が必要な機能を使うときです。
 
 ## 認証・管理者
 
 | 環境変数 | 既定値 | 説明 | Cloudflare |
 | --- | --- | --- | --- |
-| `HAKONIWA_AUTH_SECRET` | なし (**必須**) | ログインのセッションと CSRF トークンの鍵。`openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列 | secret |
-| `HAKONIWA_ADMIN_EMAILS` | なし | 管理者とみなすメールアドレス (カンマ区切り) | vars |
+| `HAKONIWA_AUTH_SECRET` | なし (自動生成) | ログインのセッションと CSRF トークンの鍵。未設定なら初回起動時にランダムな値を生成してデータベースに保存します。明示する場合は `openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列 | secret |
+| `HAKONIWA_ADMIN_EMAILS` | なし | 管理者とみなすメールアドレス (カンマ区切り)。管理画面の「管理者」で追加した管理者に加えて、常に管理者として扱われます | vars |
 | `HAKONIWA_BASE_URL` | なし (リクエストから自動判定) | 公開 URL。OAuth のコールバックと Origin 検査に使います。カスタムドメインやリバースプロキシ配下で明示したいときだけ設定します | vars |
 | `HAKONIWA_X_CLIENT_ID` / `HAKONIWA_X_CLIENT_SECRET` | なし | 両方設定すると X (Twitter) ログインが使えるようになります | secret |
 | `HAKONIWA_DISCORD_CLIENT_ID` / `HAKONIWA_DISCORD_CLIENT_SECRET` | なし | 両方設定すると Discord ログインが使えるようになります | secret |
@@ -40,7 +40,7 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | `HAKONIWA_UNIT_TIME_SEC` | `21600` (6 時間) | 新しいゲームを開始するときの 1 ターンの長さ (秒) の既定値。開始後は管理画面や CLI で変更します |
 | `HAKONIWA_START_AT` | なし | 新しいゲームの開始日時 (ISO 8601) の既定値。未設定なら開始操作をした時刻を基準にします |
 | `HAKONIWA_FINAL_TURN` | なし | 新しいゲームの最終ターン数の既定値。未設定なら無期限 |
-| `HAKONIWA_MAX_CATCH_UP_TURNS` | `1` (Cloudflare のテンプレートでは `3`) | 1 回の判定で進める最大ターン数 |
+| `HAKONIWA_MAX_CATCH_UP_TURNS` | Node.js 版は `1`、Cloudflare 版は `3` | 1 回の判定で進める最大ターン数 |
 | `HAKONIWA_USE_LBBS` | `false` | 島ごとのローカル掲示板を有効にします |
 | `HAKONIWA_NG_WORDS` | なし | 追加の NG ワード (カンマ区切り)。同梱のリストに加えて、島名・コメント・掲示板の投稿で拒否します |
 | `HAKONIWA_ADMIN_ENABLED` | `true` | 管理画面 (`/admin`) の有効・無効 |

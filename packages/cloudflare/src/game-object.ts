@@ -3,7 +3,7 @@
 // @hakoniwajs/core の buildDeps で組み立てた Hono app にそのまま委譲する。
 import { DurableObject } from "cloudflare:workers";
 import { AppError, buildDeps, buildSeasonVM, loadConfigFromEnv, migrate } from "@hakoniwajs/core";
-import type { BuiltDeps } from "@hakoniwajs/core";
+import type { AppConfig, BuiltDeps } from "@hakoniwajs/core";
 import { BookmarkBackupStore } from "./backup.ts";
 import { DurableObjectSqlDriver } from "./driver.ts";
 import type { Env } from "./env.ts";
@@ -26,7 +26,7 @@ export class HakoniwaGame extends DurableObject<Env> {
     // 呼ばれないので、このまま Promise を返さなくてよい)。
     void ctx.blockConcurrencyWhile(async () => {
       const driver = new DurableObjectSqlDriver(ctx.storage);
-      const config = loadConfigFromEnv(pickStringEnv(env));
+      const config = loadWorkerConfig(env);
       migrate(driver, { defaultUnitTimeSec: config.game.unitTimeSec });
       const backupStore = new BookmarkBackupStore(ctx);
       const clock = { now: () => Math.floor(Date.now() / 1000) };
@@ -106,6 +106,29 @@ export class HakoniwaGame extends DurableObject<Env> {
     }
     return this.#deps;
   }
+}
+
+/**
+ * Workers 版の `HAKONIWA_MAX_CATCH_UP_TURNS` の既定値。Cron Trigger (15 分ごと) やリクエスト時の
+ * 追いつき処理で 1 回に進めるターン数の上限。core の既定値 (1) より大きくし、DO が長く
+ * 眠っていた場合でも少ない呼び出しで追いつけるようにする (以前は wrangler.jsonc の vars に
+ * "3" を書いていたが、Deploy to Cloudflare の入力項目を減らすためコード側の既定値にした)。
+ */
+export const WORKERS_DEFAULT_MAX_CATCH_UP_TURNS = 3;
+
+/**
+ * Workers の `env` から `AppConfig` を組み立てる。`loadConfigFromEnv` に Workers 固有の既定値
+ * (`HAKONIWA_MAX_CATCH_UP_TURNS`) を足す。DO (game-object.ts) と Worker (worker.ts) の両方で使う。
+ */
+export function loadWorkerConfig(env: Env): AppConfig {
+  const stringEnv = pickStringEnv(env);
+  if (
+    stringEnv.HAKONIWA_MAX_CATCH_UP_TURNS === undefined ||
+    stringEnv.HAKONIWA_MAX_CATCH_UP_TURNS === ""
+  ) {
+    stringEnv.HAKONIWA_MAX_CATCH_UP_TURNS = String(WORKERS_DEFAULT_MAX_CATCH_UP_TURNS);
+  }
+  return loadConfigFromEnv(stringEnv);
 }
 
 /**

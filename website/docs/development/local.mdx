@@ -24,9 +24,8 @@ mise exec -- vp install
 cp .env.node.example .env
 ```
 
-`.env` を開き、少なくとも次の 3 つを設定してください。
+`.env` を開き、少なくとも次の 2 つを設定してください (`HAKONIWA_AUTH_SECRET` は省略すると自動生成されます)。
 
-- `HAKONIWA_AUTH_SECRET`: `openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列
 - `HAKONIWA_DEV_LOGIN=true`: 開発ログインを有効にする
 - `HAKONIWA_ADMIN_EMAILS=自分のメールアドレス`: 管理画面 (`/admin`) に入れるようにする (開発ログインでそのメールアドレスを入力すれば管理者になれる)
 
@@ -47,17 +46,20 @@ X / Discord ログインを試す場合は、OAuth アプリのコールバッ�
 
 ## `wrangler dev`
 
-ローカル用の秘密情報はリポジトリ直下の `.dev.vars` に書きます (git 管理外)。
+ローカル用の設定はリポジトリ直下の `.dev.vars` に書きます (git 管理外)。`.dev.vars.example` に任意の secret の例がコメントアウトして書いてあるので、コピーして必要な行を有効にしてください。
 
 ```sh
 cp .dev.vars.example .dev.vars
 ```
 
 ```sh .dev.vars
-HAKONIWA_AUTH_SECRET=（openssl rand -base64 32 などで生成した32バイト以上のランダム文字列）
 HAKONIWA_DEV_LOGIN=true
 HAKONIWA_ADMIN_EMAILS=you@example.com
 ```
+
+:::note
+`.dev.vars.example` の有効な行 (`KEY=value`) は、Deploy to Cloudflare ボタンが「デプロイ時に入力が必須の secret」として扱います。デプロイ時の入力を無くすため、このファイルの項目はすべてコメントアウトしておいてください。
+:::
 
 ```sh
 pnpm --filter @hakoniwajs/cloudflare dev
@@ -67,7 +69,6 @@ pnpm --filter @hakoniwajs/cloudflare dev
 
 ```sh
 wrangler dev --port 8787 \
-  --var HAKONIWA_AUTH_SECRET:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
   --var HAKONIWA_DEV_LOGIN:true \
   --var HAKONIWA_ADMIN_EMAILS:you@example.com
 ```

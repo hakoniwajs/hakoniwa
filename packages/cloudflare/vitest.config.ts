@@ -15,8 +15,8 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: { configPath: "../../wrangler.jsonc" },
-      // wrangler.jsonc の vars を上書きし、テストが loadConfigFromEnv を通せるようにする
-      // (HAKONIWA_AUTH_SECRET は本番では `wrangler secret put` で設定する必須値)。
+      // wrangler.jsonc の vars を上書きし、開発ログインと管理者をテスト用に設定する。
+      // HAKONIWA_AUTH_SECRET はあえて設定せず、DO の settings 表への自動生成の経路を通す。
       // 設計書との差異: wrangler.jsonc を root に移したことで、wrangler の
       // 「設定ファイルと同じディレクトリの .env を自動読み込みする」機能により、開発者の
       // root .env (Node 版の開発用。HAKONIWA_BASE_URL を設定していることがある) がこのテスト
@@ -25,7 +25,6 @@ export default defineConfig({
       // .env の有無に依存しないようにする。
       miniflare: {
         bindings: {
-          HAKONIWA_AUTH_SECRET: "test-secret-0123456789abcdef0123456789",
           HAKONIWA_DEV_LOGIN: "true",
           HAKONIWA_ADMIN_EMAILS: "admin@example.com",
           HAKONIWA_BASE_URL: "",

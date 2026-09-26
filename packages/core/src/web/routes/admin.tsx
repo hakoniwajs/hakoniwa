@@ -9,7 +9,9 @@ import type { AppEnv } from "../env.ts";
 import { parseStrictNonNegativeInt, parseStringBody } from "../forms/common.ts";
 import {
   parseAdminBackupForm,
+  parseAdminEmailForm,
   parseAdminLastTimeForm,
+  parseAdminSetupForm,
   parseAuthMethodsForm,
   parseFinalTurnForm,
   parseFinishGameForm,
@@ -19,6 +21,7 @@ import {
 import { listIslandSelectOptions } from "./helpers.ts";
 import { renderPage } from "./render.tsx";
 import { AdminPage } from "../views/admin.tsx";
+import { AdminSetupPage } from "../views/admin-setup.tsx";
 
 /** GET/POST とも管理者セッション必須。未ログインは login_required、非管理者は forbidden。 */
 function requireAdmin(c: Context<AppEnv>): AuthUser {
@@ -47,6 +50,7 @@ async function renderAdmin(c: Context<AppEnv>, deps: WebDeps, notice: string | u
     <AdminPage
       status={status}
       authMethods={authMethods}
+      adminEmails={deps.adminPolicy.emails()}
       islands={islands}
       timezone={deps.config.timezone}
       initDefaults={{
@@ -60,12 +64,104 @@ async function renderAdmin(c: Context<AppEnv>, deps: WebDeps, notice: string | u
   );
 }
 
+/** ログイン中ユーザーのメールアドレス。X ログインのプレースホルダ (`*.invalid`) なら undefined。 */
+function realEmailOf(user: AuthUser): string | undefined {
+  return user.email.toLowerCase().endsWith(".invalid") ? undefined : user.email;
+}
+
+/**
+ * セットアップ画面を表示する。表示のたびにセットアップコードをサーバーのログへ出力する
+ * (ログを読める運用者だけが管理者になれる。ConsoleMailer と同じ信頼モデル)。
+ */
+function renderSetup(
+  c: Context<AppEnv>,
+  deps: WebDeps,
+  user: AuthUser,
+  error: string | undefined,
+  status?: 403,
+) {
+  const code = deps.adminPolicy.setupCode();
+  deps.logger.warn(
+    `[hakoniwa] 管理者のセットアップコード: ${code} (/admin/setup で入力すると、入力したユーザーが最初の管理者になります)`,
+  );
+  return renderPage(
+    c,
+    deps,
+    <AdminSetupPage email={realEmailOf(user)} csrfToken={c.get("csrfToken") ?? ""} error={error} />,
+    status,
+  );
+}
+
 export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.get("/admin", async (c) => {
+    const user = c.get("user");
+    // 管理者が 1 人もいなければ初期セットアップへ誘導する。
+    if (user !== undefined && !user.isAdmin && deps.adminPolicy.needsSetup()) {
+      return c.redirect("/admin/setup", 302);
+    }
     requireAdmin(c);
     return renderAdmin(c, deps, undefined);
+  });
+
+  // 管理者の初期セットアップ。管理者が 1 人もいないときだけ使える (いれば 404)。
+  app.get("/admin/setup", (c) => {
+    if (!deps.adminPolicy.needsSetup()) {
+      return c.notFound();
+    }
+    const user = c.get("user");
+    if (user === undefined) {
+      throw new AppError("login_required");
+    }
+    return renderSetup(c, deps, user, undefined);
+  });
+
+  app.post("/admin/setup", async (c) => {
+    if (!deps.adminPolicy.needsSetup()) {
+      return c.notFound();
+    }
+    const user = c.get("user");
+    if (user === undefined) {
+      throw new AppError("login_required");
+    }
+    const body = await parseStringBody(c);
+    const code = parseAdminSetupForm(body);
+    try {
+      deps.adminPolicy.claimWithSetupCode(user.email, code);
+    } catch (err) {
+      if (err instanceof AppError && err.kind === "forbidden") {
+        deps.logger.warn(
+          `[hakoniwa] 管理者のセットアップコードが一致しませんでした (user: ${user.id})`,
+        );
+        return renderSetup(c, deps, user, "セットアップコードが違います。", 403);
+      }
+      throw err;
+    }
+    deps.logger.info(`[hakoniwa] ${user.email} を最初の管理者として登録しました。`);
+    // セッションの user.isAdmin はこのリクエスト内では更新されないため、リダイレクトで読み直す。
+    return c.redirect("/admin", 302);
+  });
+
+  app.post("/admin/admins", async (c) => {
+    requireAdmin(c);
+    const body = await parseStringBody(c);
+    const email = parseAdminEmailForm(body);
+    deps.adminPolicy.addEmail(email);
+    return renderAdmin(c, deps, "管理者を追加しました。");
+  });
+
+  app.post("/admin/admins/delete", async (c) => {
+    requireAdmin(c);
+    const body = await parseStringBody(c);
+    const email = parseAdminEmailForm(body);
+    deps.adminPolicy.removeEmail(email);
+    // 自分自身を削除した場合は管理画面を表示できなくなるので、トップへ戻す。
+    const user = c.get("user");
+    if (user !== undefined && !deps.adminPolicy.isAdmin(user.email)) {
+      return c.redirect("/", 302);
+    }
+    return renderAdmin(c, deps, "管理者を削除しました。");
   });
 
   // tmp/18-games.md「ルート」節: 「新しいゲームを開始」。旧 POST /admin/init はこれに統合した。

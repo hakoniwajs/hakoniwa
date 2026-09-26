@@ -24,9 +24,15 @@ describe("loadConfigFromEnv", () => {
     expect(config.auth.baseUrl).toBeUndefined();
   });
 
-  it("HAKONIWA_AUTH_SECRET が無ければ Error (生成方法を含むメッセージ)", () => {
-    expect(() => loadConfigFromEnv({})).toThrow(/HAKONIWA_AUTH_SECRET/);
-    expect(() => loadConfigFromEnv({})).toThrow(/openssl rand -base64 32/);
+  it("環境変数が 1 つも無くても組み立てられる (HAKONIWA_AUTH_SECRET は任意)", () => {
+    const config = loadConfigFromEnv({});
+    expect(config.auth).toEqual({ devLogin: false, adminEmails: [] });
+    expect(config.auth.secret).toBeUndefined();
+  });
+
+  it("HAKONIWA_AUTH_SECRET が空文字列なら未設定扱い", () => {
+    const config = loadConfigFromEnv({ HAKONIWA_AUTH_SECRET: "" });
+    expect(config.auth.secret).toBeUndefined();
   });
 
   it("真偽値・数値・文字列の環境変数を反映する", () => {

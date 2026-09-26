@@ -1,5 +1,6 @@
 // tmp/13-monorepo.md 「@hakoniwajs/core の公開 API」、tmp/08 の buildDeps、
 // tmp/14-users-auth.md 「bootstrap」節に対応する組立関数。
+import { AdminPolicy } from "../app/admin-policy.ts";
 import { AdminService } from "../app/admin-service.ts";
 import { AuthMethodPolicy } from "../app/auth-methods.ts";
 import type { AuthMethodsFlags } from "../app/auth-methods.ts";
@@ -14,6 +15,7 @@ import { SqliteSettingsRepository } from "../storage/settings-repository.ts";
 import { createApp } from "../web/app.tsx";
 import type { WebDeps } from "../web/deps.ts";
 import { createAuth } from "./auth.ts";
+import { resolveAuthSecret } from "./auth-secret.ts";
 import type { AppConfig } from "./config-from-env.ts";
 import { ConsoleMailer, ResendMailer } from "./mailer.ts";
 
@@ -34,8 +36,15 @@ export interface BuiltDeps {
   repo: SqliteGameRepository;
   /** better-auth インスタンス。`auth.handler`/`auth.api.*` を web 層 (Phase 6b) から呼ぶ。 */
   auth: ReturnType<typeof createAuth>;
+  /**
+   * 解決済みの auth secret (better-auth の secret と CSRF トークンの HMAC 鍵)。
+   * `HAKONIWA_AUTH_SECRET` があればそれ、無ければ settings 表の自動生成値。
+   */
+  authSecret: string;
   mailer: Mailer;
   authMethods: AuthMethodPolicy;
+  /** 管理者判定 (環境変数 + settings 表) と初期セットアップ。 */
+  adminPolicy: AdminPolicy;
   gameService: GameService;
   turnService: TurnService;
   adminService: AdminService;
@@ -97,12 +106,21 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     islandSize: config.game.islandSize,
     commandMax: config.game.commandMax,
   });
+  // settings 表は migrate() で作られる。Adapter (Node の compose.ts、Workers の game-object.ts)
+  // はどちらも buildDeps より前に migrate を呼ぶ。
   const settings = new SqliteSettingsRepository(driver);
   const authMethods = new AuthMethodPolicy({
     configured: configuredAuthMethods(config),
     settings,
   });
-  const auth = createAuth({ driver, config, mailer, authMethods });
+  const authSecret = resolveAuthSecret(config.auth.secret, settings);
+  const adminPolicy = new AdminPolicy({ envEmails: config.auth.adminEmails, settings });
+  if (config.adminEnabled && adminPolicy.needsSetup()) {
+    logger.warn(
+      "管理者が未設定です。ログインしてから /admin/setup を開くと、管理者になるためのセットアップコードをこのログに出力します。",
+    );
+  }
+  const auth = createAuth({ driver, config, secret: authSecret, mailer, authMethods });
 
   const gameService = new GameService({
     repo,
@@ -130,8 +148,30 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     mailerIsConsole: isMailerConsole(mailer),
   });
 
-  const webDeps: WebDeps = { gameService, turnService, adminService, config, clock, auth, logger };
+  const webDeps: WebDeps = {
+    gameService,
+    turnService,
+    adminService,
+    adminPolicy,
+    config,
+    authSecret,
+    clock,
+    auth,
+    logger,
+  };
   const app = createApp(webDeps);
 
-  return { repo, auth, mailer, authMethods, gameService, turnService, adminService, config, app };
+  return {
+    repo,
+    auth,
+    authSecret,
+    mailer,
+    authMethods,
+    adminPolicy,
+    gameService,
+    turnService,
+    adminService,
+    config,
+    app,
+  };
 }

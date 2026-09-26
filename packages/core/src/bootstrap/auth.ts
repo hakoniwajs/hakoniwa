@@ -33,13 +33,18 @@ const MAGIC_LINK_EXPIRES_IN_SECONDS = 600;
 export interface CreateAuthInput {
   driver: SqlDriver;
   config: AppConfig;
+  /**
+   * 解決済みの auth secret (`HAKONIWA_AUTH_SECRET`、未設定なら settings 表に保存した自動生成値。
+   * bootstrap/auth-secret.ts の resolveAuthSecret)。
+   */
+  secret: string;
   mailer: Mailer;
   authMethods: AuthMethodPolicy;
 }
 
 /** `AppConfig.auth` から better-auth インスタンスを組み立てる。 */
 export function createAuth(input: CreateAuthInput) {
-  const { driver, config, mailer, authMethods } = input;
+  const { driver, config, secret, mailer, authMethods } = input;
   const { auth } = config;
 
   return betterAuth({
@@ -49,7 +54,7 @@ export function createAuth(input: CreateAuthInput) {
     // node_modules/@better-auth/core の型定義で確認済み)。
     ...(auth.baseUrl !== undefined ? { baseURL: auth.baseUrl } : {}),
     basePath: "/api/auth",
-    secret: auth.secret,
+    secret,
     database: betterAuthSqliteAdapter({ driver }),
     trustedOrigins:
       auth.baseUrl !== undefined

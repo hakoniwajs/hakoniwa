@@ -1,14 +1,31 @@
-# Cloudflare Workers 版の secret です。
-# - Deploy to Cloudflare ボタンは、このファイルの項目を「デプロイ時に入力する secret」として読みます (すべて必須扱いになります)。
-#   そのため、ここには必須の HAKONIWA_AUTH_SECRET だけを置いています。
-# - X / Discord ログインやメール送信 (Resend) の secret は任意なので、デプロイ後に
-#   ダッシュボードの Settings → Variables and Secrets か `wrangler secret put <NAME>` で追加してください:
-#     HAKONIWA_X_CLIENT_ID, HAKONIWA_X_CLIENT_SECRET
-#     HAKONIWA_DISCORD_CLIENT_ID, HAKONIWA_DISCORD_CLIENT_SECRET
-#     HAKONIWA_RESEND_API_KEY
-# - ローカルの `wrangler dev` で使う場合は .dev.vars にコピーし、必要な secret を追記してください (.dev.vars は git 管理外)。
-# 非秘密の設定 (HAKONIWA_ADMIN_EMAILS, HAKONIWA_DEV_LOGIN, HAKONIWA_UNIT_TIME_SEC など) は wrangler.jsonc の vars にあります。
+# Cloudflare Workers 版の secret の例です。
+# - Deploy to Cloudflare ボタンは、このファイルの有効な項目 (KEY=value の行) を
+#   「デプロイ時に入力する secret」として読みます (すべて必須扱いになります)。
+#   必須の secret は無いので、すべてコメントアウトしています (デプロイ時に何も入力せずに済みます)。
+# - HAKONIWA_AUTH_SECRET も任意です。未設定なら初回起動時に自動生成して Durable Object の
+#   settings 表に保存します。
+# - 管理者は、デプロイ後にログインして /admin/setup を開き、Workers のログに出力される
+#   セットアップコードを入力すると登録できます (HAKONIWA_ADMIN_EMAILS で指定しておくこともできます)。
+# - 以下の secret は任意です。使う場合はデプロイ後にダッシュボードの Settings → Variables and Secrets か
+#   `wrangler secret put <NAME>` で追加してください。
+# - ローカルの `wrangler dev` で使う場合は .dev.vars にコピーし、必要な行のコメントを外してください
+#   (.dev.vars は git 管理外)。
+# 非秘密の設定 (HAKONIWA_UNIT_TIME_SEC など) は wrangler.jsonc の vars にあります。
 # Node 版の開発用の例は .env.node.example を参照してください。
 
-# 必須。better-auth の secret と CSRF トークンの鍵。openssl rand -base64 32 などで生成した 32 バイト以上の文字列。
-HAKONIWA_AUTH_SECRET=
+# better-auth の secret と CSRF トークンの鍵。任意 (未設定なら自動生成して保存します)。
+# 明示したい場合は openssl rand -base64 32 などで生成した 32 バイト以上の文字列を指定します。
+# HAKONIWA_AUTH_SECRET=
+
+# X / Discord ログイン (ID と secret の両方が揃った方法だけ有効になります)。
+# HAKONIWA_X_CLIENT_ID=
+# HAKONIWA_X_CLIENT_SECRET=
+# HAKONIWA_DISCORD_CLIENT_ID=
+# HAKONIWA_DISCORD_CLIENT_SECRET=
+
+# メール送信 (Resend)。未設定ならログにリンクを出力するだけの開発用 Mailer になります。
+# HAKONIWA_RESEND_API_KEY=
+
+# ローカルの `wrangler dev` で開発ログイン (任意のメールアドレスでログインできる機能) を使う場合。
+# 本番では絶対に有効にしないでください。
+# HAKONIWA_DEV_LOGIN=true

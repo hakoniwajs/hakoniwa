@@ -1,6 +1,7 @@
 // Perl 版 Maintenance.pm (hako-mente.cgi) mainMode/dataPrint の移植。
 // tmp/14-users-auth.md によりパスワード欄を撤去し (`_csrf` で保護)、
 // ログイン方法のトグルと資金・食料最大化フォームを追加した。
+import type { AdminEmailsVM } from "../../app/admin-policy.ts";
 import type { AdminStatus, AuthMethodsVM } from "../../app/admin-service.ts";
 import { formatDuration, formatTurnLabel, GAME_NOT_STARTED_LABEL } from "../../app/format.ts";
 import type { BackupInfo } from "../../app/ports.ts";
@@ -116,6 +117,66 @@ function AuthMethodsForm({
   );
 }
 
+/**
+ * 管理者の一覧と追加・削除 (app/admin-policy.ts)。HAKONIWA_ADMIN_EMAILS 由来は読み取り専用。
+ * 管理画面で追加した分は settings 表に保存する。
+ */
+function AdminEmailsSection({
+  adminEmails,
+  csrfToken,
+}: {
+  adminEmails: AdminEmailsVM;
+  csrfToken: string;
+}) {
+  return (
+    <>
+      <div class="table-scroll">
+        <table border={1}>
+          <tr>
+            <th>メールアドレス</th>
+            <th>設定元</th>
+            <th></th>
+          </tr>
+          {adminEmails.env.map((email) => (
+            <tr key={`env-${email}`}>
+              <td>{email}</td>
+              <td>環境変数 (HAKONIWA_ADMIN_EMAILS)</td>
+              <td>-</td>
+            </tr>
+          ))}
+          {adminEmails.stored.map((email) => (
+            <tr key={`stored-${email}`}>
+              <td>{email}</td>
+              <td>管理画面</td>
+              <td>
+                <form action="/admin/admins/delete" method="post">
+                  <input type="hidden" name="_csrf" value={csrfToken} />
+                  <input type="hidden" name="email" value={email} />
+                  <input type="submit" value="削除" />
+                </form>
+              </td>
+            </tr>
+          ))}
+        </table>
+      </div>
+      <form action="/admin/admins" method="post">
+        <input type="hidden" name="_csrf" value={csrfToken} />
+        メールアドレス
+        <input type="email" name="email" size={32} />
+        <input type="submit" value="管理者を追加" />
+      </form>
+      <p>
+        <small>
+          X ログインはメールアドレスを返さないため、管理者にするアカウントは Discord
+          ログインかメールログインのアドレス (またはアカウント設定で設定したメールアドレス)
+          を指定してください。環境変数で指定した管理者はここからは削除できません。最後の 1
+          人の管理者は削除できません。
+        </small>
+      </p>
+    </>
+  );
+}
+
 /** 資金・食料の最大化。tmp/14-users-auth.md 「決定事項」6 (特殊パスワードの代わり)。 */
 function MaximizeForm({
   islands,
@@ -145,6 +206,8 @@ function MaximizeForm({
 export interface AdminPageProps {
   status: AdminStatus;
   authMethods: AuthMethodsVM;
+  /** 管理者の一覧 (環境変数由来 + 管理画面で追加した分)。 */
+  adminEmails: AdminEmailsVM;
   islands: readonly IslandSelectVM[];
   /** datetime-local の解釈・表示に使うタイムゾーン。tmp/16-season.md「タイムゾーン」節。 */
   timezone: string;
@@ -242,6 +305,7 @@ function FinishGameForm({ csrfToken }: { csrfToken: string }) {
 export function AdminPage({
   status,
   authMethods,
+  adminEmails,
   islands,
   timezone,
   initDefaults,
@@ -369,6 +433,10 @@ export function AdminPage({
       <hr />
       <h2>ログイン方法</h2>
       <AuthMethodsForm authMethods={authMethods} csrfToken={csrfToken} />
+
+      <hr />
+      <h2>管理者</h2>
+      <AdminEmailsSection adminEmails={adminEmails} csrfToken={csrfToken} />
 
       <hr />
       <h2>バックアップ一覧</h2>
