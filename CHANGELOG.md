@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.1.4](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.3...v0.1.4) - 2026-09-26
+
+- Blume 製のドキュメントサイトを追加し GitHub Pages で公開する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/15
+- Deploy to Cloudflare で入力を不要にする (AUTH_SECRET の自動生成と管理者の初期セットアップ) by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/16
+- サイト設定を環境変数から管理画面に移す by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/17
+- テンプレート追従で依存バージョンが "undefined" になる不具合を直す by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/18
+- ドキュメントのトップページをサイドバーの無い独立したページにする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/20
+- actions/checkout を v7.0.1 に更新する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/21
+- 変更の経緯を説明するだけのコメントを整理する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/22
+
 ## [v0.1.3](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.2...v0.1.3) - 2026-09-26
 
 - fix: npx / npm .bin 経由で hakoniwa CLI が起動しない問題を修正 by @devin-ai-integration[bot] in https://github.com/hakoniwajs/hakoniwa/pull/9

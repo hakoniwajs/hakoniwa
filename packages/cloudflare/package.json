@@ -1,6 +1,6 @@
 {
   "name": "@hakoniwajs/cloudflare",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "箱庭諸島２ (TypeScript 版) の Cloudflare Workers アダプタ。Durable Objects (SQLite) 版の Worker エントリと DO クラスを提供する",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
