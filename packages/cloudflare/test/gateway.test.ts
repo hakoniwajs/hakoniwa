@@ -208,7 +208,7 @@ describe("CachedPages (ctx.exports から直接呼ぶ)", () => {
     expect(games.headers.get("cache-tag")).toBe("games");
   });
 
-  it("過去のゲームのページは 1 日。存在しないページはキャッシュさせない", async () => {
+  it("過去のゲームのページは immutable。存在しないページはキャッシュさせない", async () => {
     const { cookie, csrfToken } = await loginAsAdmin();
     await startGame(cookie, csrfToken);
     const stub = mainGameStub();
@@ -221,7 +221,7 @@ describe("CachedPages (ctx.exports から直接呼ぶ)", () => {
 
     const past = await cachedPages(ANONYMOUS).fetch("http://example.com/games/1");
     expect(past.status).toBe(200);
-    expect(past.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(past.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
 
     const missing = await cachedPages(ANONYMOUS).fetch("http://example.com/games/99");
     expect(missing.status).not.toBe(200);

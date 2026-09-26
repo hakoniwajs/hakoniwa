@@ -2,9 +2,10 @@
 // 1 インスタンス = ゲーム世界 1 つ。DO の SQLite ストレージに Node 版と同じスキーマを構築し、
 // @hakoniwajs/core の buildDeps で組み立てた Hono app にそのまま委譲する。
 import { DurableObject } from "cloudflare:workers";
-import { buildDeps, loadConfigFromEnv, migrate } from "@hakoniwajs/core";
+import { buildDeps, loadConfigFromEnv, migrate, SqliteSettingsRepository } from "@hakoniwajs/core";
 import type { AppConfig, BuiltDeps } from "@hakoniwajs/core";
 import { BookmarkBackupStore } from "./backup.ts";
+import { DurableObjectCachePurger } from "./cache-purge.ts";
 import { revSetCookie } from "./cache-policy.ts";
 import { DurableObjectSqlDriver } from "./driver.ts";
 import type { Env } from "./env.ts";
@@ -17,9 +18,11 @@ import type { Env } from "./env.ts";
  * - `authSecret`: Gateway (worker.ts) がセッションの Cookie キャッシュを検証するための auth secret。
  * - `checkTurn`: Cron Trigger から呼ばれる RPC。`turnService.advanceTurnIfDue` を呼ぶだけで、
  *   ターン境界を跨いだかどうかの判定は turnService 側 (`unitTimeSec` と `game.last_time`) に任せる。
+ *   失敗した Workers Cache の purge があれば、ここでやり直す。
  */
 export class HakoniwaGame extends DurableObject<Env> {
   #deps: BuiltDeps | undefined;
+  #purger: DurableObjectCachePurger | undefined;
   #lastRev = 0;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -30,7 +33,10 @@ export class HakoniwaGame extends DurableObject<Env> {
       const driver = new DurableObjectSqlDriver(ctx.storage);
       const config = loadWorkerConfig(env);
       migrate(driver, { defaultUnitTimeSec: config.game.unitTimeSec });
-      const backupStore = new BookmarkBackupStore(ctx);
+      // サイト設定の変更などのあとに Workers Cache を purge する (cache-purge.ts)。
+      const purger = new DurableObjectCachePurger(ctx, new SqliteSettingsRepository(driver));
+      this.#purger = purger;
+      const backupStore = new BookmarkBackupStore(ctx, purger);
       const clock = { now: () => Math.floor(Date.now() / 1000) };
       // Issue #25 (Workers Cache):
       // - cacheHints: エッジでキャッシュしてよいページに目安のヘッダを付け、CachedPages
@@ -44,6 +50,7 @@ export class HakoniwaGame extends DurableObject<Env> {
         config,
         cacheHints: true,
         sessionCookieCache: true,
+        cachePurger: purger,
       });
     });
   }
@@ -85,9 +92,11 @@ export class HakoniwaGame extends DurableObject<Env> {
   }
 
   /** Cron Trigger から呼ばれる。進めたターン数を返す。 */
-  checkTurn(): number {
+  async checkTurn(): Promise<number> {
     const now = Math.floor(Date.now() / 1000);
-    return this.#requireDeps().turnService.advanceTurnIfDue(now);
+    const advanced = this.#requireDeps().turnService.advanceTurnIfDue(now);
+    await this.#purger?.retryPending();
+    return advanced;
   }
 
   #requireDeps(): BuiltDeps {

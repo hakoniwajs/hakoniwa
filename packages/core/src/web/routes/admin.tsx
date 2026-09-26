@@ -62,6 +62,15 @@ async function renderAdmin(c: Context<AppEnv>, deps: WebDeps, notice: string | u
   );
 }
 
+/**
+ * キャッシュした全ページの内容が変わる管理操作 (サイト設定・ゲームの開始/終了・データの削除) の
+ * あとに、エッジのキャッシュを消す (Cloudflare 版だけ。purge は回数に上限があるため、稀な
+ * 操作に限る)。失敗しても管理操作は成功のまま (CachePurger はログに残す)。
+ */
+async function purgeCaches(deps: WebDeps, reason: string): Promise<void> {
+  await deps.cachePurger?.purgeAll(reason);
+}
+
 /** ログイン中ユーザーのメールアドレス。X ログインのプレースホルダ (`*.invalid`) なら undefined。 */
 function realEmailOf(user: AuthUser): string | undefined {
   return user.email.toLowerCase().endsWith(".invalid") ? undefined : user.email;
@@ -168,6 +177,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const form = parseStartGameForm(body, deps.siteSettings.get().timezone);
     deps.adminService.startGame(form, deps.clock.now());
+    await purgeCaches(deps, "start-game");
     return renderAdmin(c, deps, "新しいゲームを開始しました。");
   });
 
@@ -177,12 +187,14 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     parseFinishGameForm(body);
     deps.adminService.finishCurrentGame(deps.clock.now());
+    await purgeCaches(deps, "finish-game");
     return renderAdmin(c, deps, "このゲームを終了しました。");
   });
 
   app.post("/admin/reset", async (c) => {
     requireAdmin(c);
     deps.adminService.reset();
+    await purgeCaches(deps, "reset");
     return renderAdmin(c, deps, "データを削除しました。");
   });
 
@@ -227,6 +239,8 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     return renderAdmin(c, deps, "バックアップを作成しました。");
   });
 
+  // 復元ではエッジのキャッシュも消す必要があるが、Cloudflare 版は復元の予約と同時に DO を
+  // 再起動するため、ここではなく BackupStore (packages/cloudflare/src/backup.ts) が再起動の前に消す。
   app.post("/admin/backups/:label/restore", async (c) => {
     requireAdmin(c);
     await deps.adminService.restoreBackup(c.req.param("label"));
@@ -255,6 +269,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const form = parseSiteSettingsForm(body);
     deps.siteSettings.update(form);
+    await purgeCaches(deps, "site-settings");
     return renderAdmin(c, deps, "サイト設定を変更しました。");
   });
 
