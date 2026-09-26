@@ -29,7 +29,6 @@ export function createDebugRoutes(deps: WebDeps): Hono<AppEnv> {
         vm={vm}
         config={deps.config.game}
         timezone={deps.siteSettings.get().timezone}
-        now={deps.clock.now()}
         csrfToken={c.get("csrfToken")}
       />,
     );

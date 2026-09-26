@@ -4,7 +4,7 @@
 # (packages/core/public/images/) だけ長期 immutable にし、島ページ・トップページを開くたびに
 # 画像ごとに再検証の往復が発生しないようにする。
 #
-# style.css と owner.js はデプロイで内容が変わるため既定 (再検証) のままにする。
+# style.css・owner.js・remaining.js はデプロイで内容が変わるため既定 (再検証) のままにする。
 # 画像を差し替えるときはファイル名を変える運用にすること (https://hakoniwajs.github.io/hakoniwa/development/cache/ 参照)。
 /images/*
   Cache-Control: public, max-age=31536000, immutable

@@ -267,10 +267,16 @@ export type { AppEnv } from "./web/env.ts";
 export type { WebDeps } from "./web/deps.ts";
 export { createApp } from "./web/app.tsx";
 
-// tmp/21-kv-snapshot-cache.md: Worker 側 (DO を経由しない) でトップ/観光ページを描画するための
-// レンダリング関数。既存の web 層の View (Layout/TopPage/IslandPage) をそのまま使う。
-export type { RenderIslandPageHtmlInput, RenderTopPageHtmlInput } from "./web/render-snapshot.tsx";
-export { renderIslandPageHtml, renderTopPageHtml } from "./web/render-snapshot.tsx";
+// エッジのキャッシュ (Cloudflare Workers Cache) 向けの目安のヘッダ (Issue #25)。
+export type { PageCacheHintInput } from "./web/cache-hint.ts";
+export {
+  CACHE_HINT_HEADER,
+  CACHE_TAG_HINT_HEADER,
+  gameCacheTag,
+  gamesListCacheDirectives,
+  islandCacheTag,
+  pageCacheDirectives,
+} from "./web/cache-hint.ts";
 
 // ----------------------------------------------------------------------
 // OGP 画像 (tmp/17-ogp.md)。PNG エンコードと島の地図の描画。

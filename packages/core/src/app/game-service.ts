@@ -339,6 +339,15 @@ export class GameService {
   }
 
   /**
+   * ゲームの識別情報と状態 (開始前/進行中/終了、次のターンの予定時刻)。観光画面の VM には
+   * season が無いため、web 層がエッジのキャッシュ期間 (web/cache-hint.ts) を決めるのに使う。
+   */
+  getGameState(gameId: number): { game: GameHeaderVM; season: SeasonVM } {
+    const meta = this.#requireExistingGame(gameId);
+    return { game: this.#buildGameHeader(meta), season: buildSeasonVM(meta) };
+  }
+
+  /**
    * Perl 版 Map.pm ownerMain の移植。actor 自身の島を開く (ゲームごとに 1 ユーザー 1 島)。
    * 過去のゲームは読み取り専用 (season.state/game.isCurrent を見て web 層がフォームを隠す)。
    */

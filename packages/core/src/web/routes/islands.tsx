@@ -9,6 +9,7 @@ import type { WebDeps } from "../deps.ts";
 import type { AppEnv } from "../env.ts";
 import { parseIdParam, parseStringBody } from "../forms/common.ts";
 import { parseLbbsMessageForm, parseNewIslandForm } from "../forms/island-forms.ts";
+import { gameCacheTag, islandCacheTag, pageCacheDirectives, setCacheHint } from "../cache-hint.ts";
 import { listIslandSelectOptions, requireGameIdParam } from "./helpers.ts";
 import { renderPage } from "./render.tsx";
 import { IslandOgpHead, IslandPage } from "../views/island.tsx";
@@ -70,6 +71,11 @@ export function createIslandsRoutes(deps: WebDeps): Hono<AppEnv> {
     const vm = deps.gameService.getIslandPage(gameId, id);
     const origin = resolveOrigin(deps, c.req.url);
     const site = deps.siteSettings.get();
+    const { game, season } = deps.gameService.getGameState(gameId);
+    setCacheHint(c, deps, pageCacheDirectives({ game, season, now: deps.clock.now() }), [
+      gameCacheTag(gameId),
+      islandCacheTag(gameId, id),
+    ]);
     return renderPage(
       c,
       deps,
@@ -95,9 +101,9 @@ export function createIslandsRoutes(deps: WebDeps): Hono<AppEnv> {
     return c.body(png as Uint8Array<ArrayBuffer>, 200, {
       "Content-Type": "image/png",
       "Cache-Control": ogpCacheControl(game, season, deps.clock.now()),
-      // tmp/17-ogp.md 「キャッシュ (Workers Cache)」節: 将来 ctx.cache.purge({ tags }) で
-      // ターン進行時にこの島の OGP 画像だけ無効化できるように付けておく (初版では purge しない)。
-      "Cache-Tag": `island-${id}`,
+      // tmp/17-ogp.md 「キャッシュ (Workers Cache)」節: ctx.cache.purge({ tags }) で
+      // このゲーム・この島の応答をまとめて無効化できるように付けておく (web/cache-hint.ts と同じタグ)。
+      "Cache-Tag": `${gameCacheTag(gameId)},${islandCacheTag(gameId, id)}`,
     });
   });
 
