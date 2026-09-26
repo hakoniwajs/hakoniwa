@@ -31,7 +31,7 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -151,11 +151,13 @@ jobs:
             }
             fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
           '
-          for i in $(seq 1 30); do
-            if npm install --package-lock-only --ignore-scripts; then
+          # 反映には 5 分以上かかることがあるため最大 15 分待つ。--prefer-online で
+          # キャッシュ済みのパッケージ情報を使わず、毎回 registry に問い合わせる。
+          for i in $(seq 1 90); do
+            if npm install --package-lock-only --ignore-scripts --prefer-online; then
               exit 0
             fi
-            echo "attempt $i/30: npm registry に $VERSION がまだ見えない。10s 待機"
+            echo "attempt $i/90: npm registry に $VERSION がまだ見えない。10s 待機"
             sleep 10
           done
           echo "::error::@hakoniwajs/*@$VERSION が npm registry に反映されませんでした"
