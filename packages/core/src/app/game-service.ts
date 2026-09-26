@@ -15,6 +15,7 @@ import {
 } from "./sanitize.ts";
 import type { GameMeta, GameRepository, IslandSummary, UserPrefs } from "./ports.ts";
 import type { Clock } from "./ports.ts";
+import type { SiteSettingsReader } from "./site-settings.ts";
 import { buildSeasonVM, isFinished } from "./season.ts";
 import type { SeasonVM } from "./season.ts";
 import { buildIslandOgpVM, buildMoneyDisplay } from "./view-models.ts";
@@ -58,8 +59,11 @@ export interface GameServiceDeps {
   clock: Clock;
   config: GameConfig;
   rng: Rng;
-  /** HAKONIWA_NG_WORDS 由来の追加 NG ワード。未指定なら空配列。 */
-  ngWords?: string[];
+  /**
+   * サイト設定 (追加 NG ワード・ローカル掲示板の有無)。管理画面から実行中に変わるため
+   * 呼び出しごとに `get()` で読む。
+   */
+  siteSettings: SiteSettingsReader;
 }
 
 function buildDetailVM(island: Island, rank: number, turn: number): IslandDetailVM {
@@ -123,7 +127,7 @@ export class GameService {
   }
 
   #requireNgWordFree(text: string): void {
-    const ngWord = findNgWord(text, this.#deps.ngWords ?? []);
+    const ngWord = findNgWord(text, this.#deps.siteSettings.get().ngWords);
     if (ngWord !== undefined) {
       // 利用者にはどの語が引っかかったかを見せない (15「照合ルール」6)。
       throw new AppError("ng_word");
@@ -612,8 +616,8 @@ export class GameService {
     message: string,
   ): (OwnerPageVM | IslandPageVM) & { notice: string } {
     this.#requireCurrentGame(gameId);
-    const { repo, config } = this.#deps;
-    if (!config.useLbbs) {
+    const { repo } = this.#deps;
+    if (!this.#deps.siteSettings.get().useLbbs) {
       throw new AppError("lbbs_disabled");
     }
     const user = this.#requireLogin(actor);
@@ -655,7 +659,7 @@ export class GameService {
   ): OwnerPageVM & { notice: string } {
     this.#requireCurrentGame(gameId);
     const { repo, config } = this.#deps;
-    if (!config.useLbbs) {
+    if (!this.#deps.siteSettings.get().useLbbs) {
       throw new AppError("lbbs_disabled");
     }
     const { user, summary } = this.#requireOwnIsland(actor, gameId);

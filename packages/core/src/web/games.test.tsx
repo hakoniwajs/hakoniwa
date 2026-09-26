@@ -91,7 +91,7 @@ describe("存在しない gameId", () => {
 
 describe("tmp/18-games.md: ゲームの終了 → 新しいゲーム開始 → 過去のゲームは読み取り専用", () => {
   it("終了後も過去のゲームは閲覧でき、書き込みは 409。新しいゲームでは同じユーザーが島を作れる", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const owner = await createIsland(testApp, {
       id: "owner1",
       name: "しまぬし",

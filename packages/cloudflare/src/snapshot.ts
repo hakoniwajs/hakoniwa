@@ -2,7 +2,7 @@
 // Workers KV にキャッシュするための型・キー・TTL 計算。HTML はキャッシュしない
 // (レンダリングは @hakoniwajs/core の renderTopPageHtml/renderIslandPageHtml を worker.ts が呼ぶ)。
 import { terrainFromJSON } from "@hakoniwajs/core";
-import type { IslandPageVM, SeasonState, TopPageVM } from "@hakoniwajs/core";
+import type { IslandPageVM, SeasonState, SiteRenderSettings, TopPageVM } from "@hakoniwajs/core";
 
 /** KV キーの版数。保存形式を変えるときはこれを上げる (invalidate 処理は作らないため)。 */
 const SNAPSHOT_KEY_VERSION = "v1";
@@ -13,6 +13,16 @@ export function topSnapshotKey(gameId: number): string {
 
 export function islandSnapshotKey(gameId: number, islandId: number): string {
   return `${SNAPSHOT_KEY_VERSION}:${gameId}:island:${islandId}`;
+}
+
+/**
+ * サイト設定 (タイトル・フッタ・ローカル掲示板の有無・タイムゾーン) の KV キー。
+ * サイト設定は管理画面から変わるため、ページごとの View Model (過去のゲームは 30 日キャッシュ
+ * する) には含めず、全ページ共通の 1 キーに短期 TTL で置く。Worker 側レンダリングは
+ * View Model とこのキーの両方が KV にあるときだけ KV から応答する。
+ */
+export function siteSnapshotKey(): string {
+  return `${SNAPSHOT_KEY_VERSION}:site`;
 }
 
 /**
@@ -43,6 +53,11 @@ export interface SnapshotEnvelope<T> {
 export type TopPageSnapshotEnvelope = SnapshotEnvelope<TopPageVM>;
 export type IslandPageSnapshotEnvelope = SnapshotEnvelope<IslandPageSnapshotVM>;
 
+/** `siteSnapshotKey()` に `JSON.stringify` で保存する値。 */
+export interface SiteSnapshotEnvelope {
+  site: SiteRenderSettings;
+}
+
 /** DO の RPC `pageSnapshot` への入力。 */
 export type PageSnapshotRequest =
   | { kind: "top"; gameId: number }
@@ -52,11 +67,13 @@ export type PageSnapshotRequest =
  * DO の RPC `pageSnapshot` の戻り値。ゲーム/島が存在しない場合は `undefined`
  * (呼び出し側は従来どおり DO への HTTP 転送にフォールバックする)。
  * `vm` は RPC 越しにクラスインスタンスを渡せないため、island は常に `IslandPageSnapshotVM`
- * (terrain が number[][]) にした形で返す。
+ * (terrain が number[][]) にした形で返す。`site` は描画時点のサイト設定 (Worker 側レンダリングに
+ * 使い、`siteSnapshotKey()` に `siteTtl` で保存する)。
  */
-export type PageSnapshotResult =
+export type PageSnapshotResult = (
   | { kind: "top"; vm: TopPageVM; nextTurnAt: number | null; ttl: number }
-  | { kind: "island"; vm: IslandPageSnapshotVM; nextTurnAt: number | null; ttl: number };
+  | { kind: "island"; vm: IslandPageSnapshotVM; nextTurnAt: number | null; ttl: number }
+) & { site: SiteRenderSettings; siteTtl: number };
 
 // ----------------------------------------------------------------------
 // TTL (tmp/21-kv-snapshot-cache.md「キャッシュ期間の区別」節)

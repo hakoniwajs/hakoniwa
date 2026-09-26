@@ -5,9 +5,11 @@ import { CommandKind, LandKind } from "../core/constants.ts";
 import { createSeededRng } from "../core/rng.ts";
 import { createTerrain } from "../core/terrain.ts";
 import { AppError } from "./errors.ts";
-import { FakeClock, FakeGameRepository } from "./fake-repository.ts";
+import { FakeClock, FakeGameRepository, FakeSettingsRepository } from "./fake-repository.ts";
 import type { GameServiceDeps } from "./game-service.ts";
 import { GameService } from "./game-service.ts";
+import { defaultSiteSettings, SiteSettingsService } from "./site-settings.ts";
+import type { SiteSettings } from "./site-settings.ts";
 
 function user(id: string, name = `user-${id}`): AuthUser {
   return { id, name, email: `${id}@example.com`, isAdmin: false };
@@ -18,7 +20,10 @@ function user(id: string, name = `user-${id}`): AuthUser {
  * (旧 `repo.initialize({...})` の代わり)。`skipInit` のときはゲームを作らず、
  * `gameId` はダミー値 (1) を返す (not_initialized のテストで使う)。
  */
-function setup(overrides: Partial<GameServiceDeps> = {}, options: { skipInit?: boolean } = {}) {
+/** `setup` の上書き。`site` はサイト設定 (追加 NG ワード・ローカル掲示板等) の一部を上書きする。 */
+type SetupOverrides = Partial<GameServiceDeps> & { site?: Partial<SiteSettings> };
+
+function setup(overrides: SetupOverrides = {}, options: { skipInit?: boolean } = {}) {
   const repo = overrides.repo ?? new FakeGameRepository();
   let gameId = repo.getCurrentGameId();
   if (!options.skipInit && gameId === undefined) {
@@ -27,14 +32,20 @@ function setup(overrides: Partial<GameServiceDeps> = {}, options: { skipInit?: b
       0,
     );
   }
+  const { site, ...rest } = overrides;
+  const siteSettings = new SiteSettingsService({
+    settings: new FakeSettingsRepository(),
+    fallback: { ...defaultSiteSettings, ...site },
+  });
   const deps: GameServiceDeps = {
     repo,
     clock: new FakeClock(1_000_000),
     config: defaultConfig,
     rng: createSeededRng(42),
-    ...overrides,
+    siteSettings,
+    ...rest,
   };
-  return { repo, deps, service: new GameService(deps), gameId: gameId ?? 1 };
+  return { repo, deps, siteSettings, service: new GameService(deps), gameId: gameId ?? 1 };
 }
 
 function expectAppError(fn: () => unknown, kind: string): void {
@@ -95,8 +106,16 @@ describe("GameService.createIsland", () => {
     expectAppError(() => service.createIsland(user("u1"), gameId, "エロティズム島"), "ng_word");
   });
 
-  it("HAKONIWA_NG_WORDS 由来の追加語も検出する", () => {
-    const { service, gameId } = setup({ ngWords: ["きんしご"] });
+  it("サイト設定の変更 (追加 NG ワード) は次の呼び出しから反映される", () => {
+    const { service, gameId, siteSettings } = setup();
+    const created = service.createIsland(user("u1"), gameId, "あとからだめ");
+    expect(created.name).toBe("あとからだめ");
+    siteSettings.update({ ...defaultSiteSettings, ngWords: ["だめ"] });
+    expectAppError(() => service.createIsland(user("u2"), gameId, "もっとだめ"), "ng_word");
+  });
+
+  it("サイト設定の追加 NG ワードも検出する", () => {
+    const { service, gameId } = setup({ site: { ngWords: ["きんしご"] } });
     expectAppError(() => service.createIsland(user("u1"), gameId, "きんしご島"), "ng_word");
   });
 
@@ -422,7 +441,7 @@ describe("GameService.changeName", () => {
 
 describe("GameService.postLbbs", () => {
   function setupWithLbbs() {
-    return setup({ config: { ...defaultConfig, useLbbs: true } });
+    return setup({ site: { useLbbs: true } });
   }
 
   it("自分の島には owner として記帳できる", () => {
@@ -477,7 +496,10 @@ describe("GameService.postLbbs", () => {
   });
 
   it("lbbsMax を超えた分は切り詰められる", () => {
-    const { service, gameId } = setup({ config: { ...defaultConfig, useLbbs: true, lbbsMax: 2 } });
+    const { service, gameId } = setup({
+      config: { ...defaultConfig, lbbsMax: 2 },
+      site: { useLbbs: true },
+    });
     const created = service.createIsland(user("u1"), gameId, "テスト島");
     service.postLbbs(user("u2", "旅人1"), gameId, created.id, "1件目");
     service.postLbbs(user("u3", "旅人2"), gameId, created.id, "2件目");
@@ -508,7 +530,7 @@ describe("GameService.postLbbs", () => {
 
 describe("GameService.deleteLbbs", () => {
   function setupWithLbbs() {
-    return setup({ config: { ...defaultConfig, useLbbs: true } });
+    return setup({ site: { useLbbs: true } });
   }
 
   it("自分の島の記帳を削除できる", () => {
@@ -589,7 +611,6 @@ describe("GameService.getTopPage / getIslandPage", () => {
     const { service, gameId } = setup();
     const created = service.createIsland(user("u1"), gameId, "しま");
     const page = service.getIslandPage(gameId, created.id);
-    expect(page.ogp.title).toBe(`${created.name}島 - ${defaultConfig.site.title}`);
     expect(page.ogp.description).toBe(
       `ターン${page.turn} / 人口 ${page.pop}${defaultConfig.units.pop}・` +
         `面積 ${page.area}${defaultConfig.units.area}・順位 ${page.rank}位`,
@@ -627,7 +648,7 @@ describe("GameService.getIslandOgp", () => {
 describe("GameService 終了後 (game_finished)", () => {
   /** 島を1つ作ってから、repo 上で強制的にゲームを終了状態にする (finalTurn=1 に設定して finishGame)。 */
   function setupFinished() {
-    const s = setup({ config: { ...defaultConfig, useLbbs: true } });
+    const s = setup({ site: { useLbbs: true } });
     const created = s.service.createIsland(user("u1"), s.gameId, "テスト島");
     // tmp/16-season.md「開始前の状態 = ターン 0」節: 最終ターン (1) まで実際に処理が
     // 進んだ状態にしてから終了させる (turn=1, firstTurn=0 → 実行済み回数 1)。
@@ -808,7 +829,8 @@ describe("GameService 開始前", () => {
     return setup({
       repo,
       clock: new FakeClock(1_000_000),
-      config: { ...defaultConfig, useLbbs: true, costChangeName: 10 },
+      config: { ...defaultConfig, costChangeName: 10 },
+      site: { useLbbs: true },
     });
   }
 
@@ -866,7 +888,7 @@ describe("GameService 開始前", () => {
 // tmp/18-games.md「複数ゲーム (過去のゲームの保存)」節。
 describe("GameService: 複数ゲーム", () => {
   function setupTwoGames() {
-    const s = setup({ config: { ...defaultConfig, useLbbs: true } });
+    const s = setup({ site: { useLbbs: true } });
     const oldGameId = s.gameId;
     const created = s.service.createIsland(user("u1"), oldGameId, "旧島");
     s.repo.finishGame(oldGameId, 2_000_000);

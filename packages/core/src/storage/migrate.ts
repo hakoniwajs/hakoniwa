@@ -10,7 +10,7 @@ export interface MigrateOptions {
   /**
    * v3 → v4 のステップで既存行の `unit_time_sec` をバックフィルする値。
    * 省略時は 21600 (6 時間。`defaultConfig.unitTimeSec` と同じ)。Adapter は
-   * `config.unitTimeSec` (`HAKONIWA_UNIT_TIME_SEC`) を渡す。
+   * `config.unitTimeSec` (既定 21600) を渡す。
    */
   defaultUnitTimeSec?: number;
 }

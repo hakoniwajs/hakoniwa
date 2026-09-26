@@ -8,6 +8,7 @@
 import { HtmlEscapedCallbackPhase, resolveCallback } from "hono/utils/html";
 import type { HtmlEscapedString } from "hono/utils/html";
 import type { GameConfig } from "../core/config.ts";
+import type { SiteRenderSettings } from "../app/site-settings.ts";
 import type { IslandPageVM, TopPageVM } from "../app/view-models.ts";
 import { IslandOgpHead, IslandPage } from "./views/island.tsx";
 import { Layout } from "./views/layout.tsx";
@@ -24,8 +25,11 @@ function renderJsxToHtml(node: JsxElement): Promise<string> {
 export interface RenderTopPageHtmlInput {
   vm: TopPageVM;
   config: GameConfig;
-  /** datetime-local の解釈と日時表示に使うタイムゾーン (`AppConfig.timezone`)。 */
-  timezone: string;
+  /**
+   * 描画時点のサイト設定 (タイトル・フッタ・タイムゾーン等)。管理画面から変わるため、
+   * Worker 側では DO から受け取ったもの (KV にキャッシュしたもの) を渡す。
+   */
+  site: SiteRenderSettings;
   /** 表示時点の unix 秒。「次のターンまであと N 分」の計算に使う。 */
   now: number;
 }
@@ -39,12 +43,12 @@ export interface RenderTopPageHtmlInput {
 export function renderTopPageHtml({
   vm,
   config,
-  timezone,
+  site,
   now,
 }: RenderTopPageHtmlInput): Promise<string> {
   return renderJsxToHtml(
-    <Layout config={config} user={undefined} csrfToken={undefined}>
-      <TopPage vm={vm} config={config} timezone={timezone} now={now} />
+    <Layout site={site} user={undefined} csrfToken={undefined}>
+      <TopPage vm={vm} config={config} timezone={site.timezone} now={now} />
     </Layout>,
   );
 }
@@ -52,6 +56,8 @@ export function renderTopPageHtml({
 export interface RenderIslandPageHtmlInput {
   vm: IslandPageVM;
   config: GameConfig;
+  /** 描画時点のサイト設定 (`RenderTopPageHtmlInput.site` と同じ)。 */
+  site: SiteRenderSettings;
   /** OGP メタタグの絶対 URL 化に使うオリジン (`config.auth.baseUrl` かリクエストのオリジン)。 */
   origin: string;
 }
@@ -64,16 +70,17 @@ export interface RenderIslandPageHtmlInput {
 export function renderIslandPageHtml({
   vm,
   config,
+  site,
   origin,
 }: RenderIslandPageHtmlInput): Promise<string> {
   return renderJsxToHtml(
     <Layout
-      config={config}
+      site={site}
       user={undefined}
       csrfToken={undefined}
-      extraHead={<IslandOgpHead vm={vm} origin={origin} />}
+      extraHead={<IslandOgpHead vm={vm} origin={origin} siteTitle={site.title} />}
     >
-      <IslandPage vm={vm} config={config} csrfToken={undefined} />
+      <IslandPage vm={vm} config={config} useLbbs={site.useLbbs} csrfToken={undefined} />
     </Layout>,
   );
 }

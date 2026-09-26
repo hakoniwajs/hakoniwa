@@ -9,6 +9,7 @@ import {
   fromIslandPageSnapshotVM,
   islandSnapshotKey,
   loadSnapshotTtlConfig,
+  siteSnapshotKey,
   toIslandPageSnapshotVM,
   topSnapshotKey,
 } from "../src/snapshot.ts";
@@ -17,6 +18,10 @@ describe("topSnapshotKey / islandSnapshotKey", () => {
   it("ターン数を含まない、ゲーム/島 ID ベースのキーになる", () => {
     expect(topSnapshotKey(3)).toBe("v1:3:top");
     expect(islandSnapshotKey(3, 7)).toBe("v1:3:island:7");
+  });
+
+  it("サイト設定はゲームに依らない 1 キーに置く", () => {
+    expect(siteSnapshotKey()).toBe("v1:site");
   });
 });
 
@@ -43,7 +48,6 @@ describe("toIslandPageSnapshotVM / fromIslandPageSnapshotVM", () => {
       lbbs: [],
       logs: [],
       ogp: {
-        title: "てすと島",
         description: "",
         imagePath: "/games/1/islands/1/ogp.png?turn=1",
         width: 800,

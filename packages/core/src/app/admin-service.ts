@@ -44,7 +44,7 @@ export interface StartGameOptions {
   finalTurn?: number | null;
   /**
    * 1 ターンの長さ (秒)。tmp/16-season.md「ターンの長さも DB に持つ (追加要件)」節。
-   * 省略時は `config.unitTimeSec` (`HAKONIWA_UNIT_TIME_SEC`)。開始時刻の切り下げにもこの値を使う。
+   * 省略時は `config.unitTimeSec` (既定 21600)。開始時刻の切り下げにもこの値を使う。
    */
   unitTimeSec?: number;
 }

@@ -40,19 +40,9 @@ export interface OilConfig {
   ratio: number;
 }
 
-/** サイト情報。 */
-export interface SiteConfig {
-  title: string;
-  adminName: string;
-  email: string;
-  bbsUrl: string;
-  topPageUrl: string;
-}
-
+// サイト情報 (タイトル・フッタ)・ローカル掲示板の有無・タイムゾーン・追加 NG ワードは
+// 管理画面から変更できるサイト設定 (app/site-settings.ts) に移した。
 export interface GameConfig {
-  // サイト
-  site: SiteConfig;
-
   // 進行
   /**
    * 1ターンが何秒か。tmp/16-season.md「ターンの長さも DB に持つ (追加要件)」節: 初期化後は
@@ -78,8 +68,6 @@ export interface GameConfig {
   maxAbandonsPerGame: number;
   /** コマンド入力限界数。 */
   commandMax: number;
-  /** ローカル掲示板を使用するか。 */
-  useLbbs: boolean;
   /** ローカル掲示板行数。 */
   lbbsMax: number;
   /** 島の大きさ (変更非推奨)。 */
@@ -125,16 +113,6 @@ export interface GameConfig {
 }
 
 export const defaultConfig: GameConfig = {
-  // adminName/email/bbsUrl/topPageUrl は Perl 版の既定値 (プレースホルダ) を出さないよう
-  // 空文字列にする。未設定時は web/views/layout.tsx のフッタで該当行ごと省略する。
-  site: {
-    title: "箱庭諸島２",
-    adminName: "",
-    email: "",
-    bbsUrl: "",
-    topPageUrl: "",
-  },
-
   unitTimeSec: 21600,
   maxIslands: 30,
   topLogTurns: 1,
@@ -145,7 +123,6 @@ export const defaultConfig: GameConfig = {
   giveupTurns: 28,
   maxAbandonsPerGame: 3,
   commandMax: 20,
-  useLbbs: false,
   lbbsMax: 10,
   islandSize: 12,
   hideMoneyMode: 2,

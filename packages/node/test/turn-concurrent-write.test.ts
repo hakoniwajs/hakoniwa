@@ -5,6 +5,7 @@
 // 修正前はこのケースで終了済みゲームが 'running' に復活し、final_turn が NULL に戻された。
 import {
   buildDeps,
+  defaultSiteSettings,
   createSeededRng,
   defaultConfig,
   FakeBackupStore,
@@ -41,10 +42,9 @@ function setup(startAt: number, unitTimeSec: number) {
       adminEmails: [],
     },
     mail: { mailFrom: "hakoniwa@example.com" },
-    ngWords: [],
     adminEnabled: true,
     debug: false,
-    timezone: "Asia/Tokyo",
+    siteDefaults: defaultSiteSettings,
   };
   const deps = buildDeps({
     driver,

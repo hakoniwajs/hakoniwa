@@ -77,7 +77,7 @@ describe("POST /games/:gameId/islands (新規作成)", () => {
   });
 
   it("ng_word: NG ワードを含む名前は 400", async () => {
-    const testApp = setupTestApp({ ngWords: ["だめな単語"] });
+    const testApp = setupTestApp({ site: { ngWords: ["だめな単語"] } });
     const auth = await loginAs(testApp, { id: "u1", name: "たろう", email: "u1@example.com" });
     const res = await postForm(
       testApp.app,
@@ -475,7 +475,7 @@ describe("tmp/16-season.md: ゲーム終了後 (現在のゲームのまま)", (
   });
 
   it("POST /games/:gameId/islands/:id/lbbs (記帳) は現在のゲームなら終了後も許可される", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const auth = await createFinishedIsland(testApp);
     const res = await postForm(
       testApp.app,

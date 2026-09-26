@@ -21,7 +21,7 @@ async function createIsland(testApp: TestApp) {
 
 describe("ローカル掲示板", () => {
   it("useLbbs=false なら 404", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: false } });
+    const testApp = setupTestApp({ site: { useLbbs: false } });
     const owner = await createIsland(testApp);
     const res = await postForm(
       testApp.app,
@@ -33,14 +33,14 @@ describe("ローカル掲示板", () => {
   });
 
   it("未ログインでの記帳は 401", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     await createIsland(testApp);
     const res = await postForm(testApp.app, "/games/1/islands/1/lbbs", { message: "こんにちは" });
     expect(res.status).toBe(401);
   });
 
   it("他人の島の掲示板に観光者として記帳できる", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     await createIsland(testApp);
     const visitor = await loginAs(testApp, {
       id: "visitor1",
@@ -63,7 +63,7 @@ describe("ローカル掲示板", () => {
   });
 
   it("島主が自分の島の掲示板 (観光ルート) に記帳すると開発画面が描画される", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const owner = await createIsland(testApp);
     const res = await postForm(
       testApp.app,
@@ -78,7 +78,7 @@ describe("ローカル掲示板", () => {
   });
 
   it("Origin ヘッダが host と不一致なら 403", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const owner = await createIsland(testApp);
     const res = await postForm(
       testApp.app,
@@ -90,7 +90,7 @@ describe("ローカル掲示板", () => {
   });
 
   it("Origin ヘッダが host と一致すれば 200", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const owner = await createIsland(testApp);
     const res = await postForm(
       testApp.app,
@@ -102,7 +102,7 @@ describe("ローカル掲示板", () => {
   });
 
   it("島主の記帳と削除ができる", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const owner = await createIsland(testApp);
     const post = await postForm(
       testApp.app,
@@ -124,7 +124,7 @@ describe("ローカル掲示板", () => {
   });
 
   it("lbbs_empty: メッセージが空なら 400", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true } });
+    const testApp = setupTestApp({ site: { useLbbs: true } });
     const owner = await createIsland(testApp);
     const res = await postForm(
       testApp.app,
@@ -141,7 +141,7 @@ describe("ローカル掲示板", () => {
   it("開始前 (turn=0) の記帳は「ゲーム開始前：」で表示される", async () => {
     const futureStart = INITIAL_CLOCK + 10_000;
     const testApp = setupTestApp({
-      gameOverrides: { useLbbs: true },
+      site: { useLbbs: true },
       startAt: futureStart,
       lastTime: futureStart,
     });
@@ -159,7 +159,7 @@ describe("ローカル掲示板", () => {
   });
 
   it("ng_word: NG ワードを含む記帳は 400", async () => {
-    const testApp = setupTestApp({ gameOverrides: { useLbbs: true }, ngWords: ["ng"] });
+    const testApp = setupTestApp({ site: { useLbbs: true, ngWords: ["ng"] } });
     const owner = await createIsland(testApp);
     const res = await postForm(
       testApp.app,

@@ -15,6 +15,7 @@ import {
   parseAuthMethodsForm,
   parseFinalTurnForm,
   parseFinishGameForm,
+  parseSiteSettingsForm,
   parseStartGameForm,
   parseUnitTimeForm,
 } from "../forms/admin-forms.ts";
@@ -37,6 +38,7 @@ function requireAdmin(c: Context<AppEnv>): AuthUser {
 
 async function renderAdmin(c: Context<AppEnv>, deps: WebDeps, notice: string | undefined) {
   const status = await deps.adminService.status();
+  const siteSettings = deps.siteSettings.get();
   const authMethods = deps.adminService.getAuthMethods();
   // 未初期化のときに gameService.getTopPage (listIslandSelectOptions が内部で呼ぶ) を叩くと
   // not_initialized で例外になるため、初期化済みのときだけ島一覧 (maximize 用) を取得する。
@@ -52,12 +54,8 @@ async function renderAdmin(c: Context<AppEnv>, deps: WebDeps, notice: string | u
       authMethods={authMethods}
       adminEmails={deps.adminPolicy.emails()}
       islands={islands}
-      timezone={deps.config.timezone}
-      initDefaults={{
-        ...(deps.config.startAt !== undefined ? { startAt: deps.config.startAt } : {}),
-        ...(deps.config.finalTurn !== undefined ? { finalTurn: deps.config.finalTurn } : {}),
-        unitTimeSec: deps.config.game.unitTimeSec,
-      }}
+      siteSettings={siteSettings}
+      defaultUnitTimeSec={deps.config.game.unitTimeSec}
       csrfToken={c.get("csrfToken") ?? ""}
       notice={notice}
     />,
@@ -168,7 +166,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
   app.post("/admin/games", async (c) => {
     requireAdmin(c);
     const body = await parseStringBody(c);
-    const form = parseStartGameForm(body, deps.config.timezone);
+    const form = parseStartGameForm(body, deps.siteSettings.get().timezone);
     deps.adminService.startGame(form, deps.clock.now());
     return renderAdmin(c, deps, "新しいゲームを開始しました。");
   });
@@ -191,7 +189,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
   app.post("/admin/last-time", async (c) => {
     requireAdmin(c);
     const body = await parseStringBody(c);
-    const form = parseAdminLastTimeForm(body, deps.config.timezone);
+    const form = parseAdminLastTimeForm(body, deps.siteSettings.get().timezone);
     deps.adminService.setLastTime(form.unix);
     return renderAdmin(c, deps, "最終更新時間を変更しました。");
   });
@@ -248,6 +246,16 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const form = parseAuthMethodsForm(body);
     deps.adminService.setAuthMethods(form);
     return renderAdmin(c, deps, "ログイン方法の設定を変更しました。");
+  });
+
+  // 追加: サイト設定 (タイトル・フッタ・追加 NG ワード・ローカル掲示板・タイムゾーン)。
+  // 以前は環境変数だったものを settings 表に保存する (app/site-settings.ts)。
+  app.post("/admin/site-settings", async (c) => {
+    requireAdmin(c);
+    const body = await parseStringBody(c);
+    const form = parseSiteSettingsForm(body);
+    deps.siteSettings.update(form);
+    return renderAdmin(c, deps, "サイト設定を変更しました。");
   });
 
   // 追加: tmp/14-users-auth.md 「決定事項」6。特殊パスワードの代わりの資金・食料最大化。

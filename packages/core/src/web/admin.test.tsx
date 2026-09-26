@@ -275,6 +275,113 @@ describe("管理画面 (/admin)", () => {
     expect(testApp.adminService.getAuthMethods().enabled.email).toBe(false);
   });
 
+  it("GET /admin: 「サイト設定」フォームに現在の値を表示する", async () => {
+    const testApp = setupTestApp({
+      adminEmails: [ADMIN_EMAIL],
+      site: { title: "げんざいのたいとる", ngWords: ["いち", "に"], useLbbs: true },
+    });
+    const admin = await loginAdmin(testApp);
+    const res = await testApp.app.request("/admin", { headers: { cookie: admin.cookie } });
+    const html = await res.text();
+    expect(html).toContain("サイト設定");
+    expect(html).toContain('action="/admin/site-settings"');
+    expect(html).toContain(
+      'name="title" size="32" maxlength="64" required="" value="げんざいのたいとる"',
+    );
+    expect(html).toContain("いち\nに</textarea>");
+    expect(html).toMatch(/name="use-lbbs" checked/);
+  });
+
+  it("POST /admin/site-settings: サイト設定を保存し、すぐにヘッダ・フッタへ反映される", async () => {
+    const testApp = setupTestApp({ adminEmails: [ADMIN_EMAIL] });
+    const admin = await loginAdmin(testApp);
+    const res = await postForm(
+      testApp.app,
+      "/admin/site-settings",
+      {
+        _csrf: admin.csrfToken,
+        title: " あたらしいしま ",
+        "admin-name": "かんりにん",
+        email: "admin@example.com",
+        "bbs-url": "https://example.com/bbs",
+        "toppage-url": "",
+        "ng-words": "だめ\r\nぜったい, だめ",
+        "use-lbbs": "on",
+        timezone: "UTC",
+      },
+      { cookie: admin.cookie },
+    );
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("サイト設定を変更しました。");
+    expect(html).toContain("<title>あたらしいしま</title>");
+    expect(testApp.siteSettings.get()).toEqual({
+      title: "あたらしいしま",
+      adminName: "かんりにん",
+      email: "admin@example.com",
+      bbsUrl: "https://example.com/bbs",
+      topPageUrl: "",
+      ngWords: ["だめ", "ぜったい"],
+      useLbbs: true,
+      timezone: "UTC",
+    });
+
+    const top = await (await testApp.app.request("/games/1")).text();
+    expect(top).toContain("<title>あたらしいしま</title>");
+    expect(top).toContain("管理者:かんりにん");
+    expect(top).toContain('掲示板(<a href="https://example.com/bbs">');
+    expect(top).not.toContain("トップページ(");
+  });
+
+  it("POST /admin/site-settings: チェックボックスが無ければローカル掲示板は無効になる", async () => {
+    const testApp = setupTestApp({ adminEmails: [ADMIN_EMAIL], site: { useLbbs: true } });
+    const admin = await loginAdmin(testApp);
+    const res = await postForm(
+      testApp.app,
+      "/admin/site-settings",
+      { _csrf: admin.csrfToken, title: "しま", timezone: "Asia/Tokyo" },
+      { cookie: admin.cookie },
+    );
+    expect(res.status).toBe(200);
+    expect(testApp.siteSettings.get().useLbbs).toBe(false);
+  });
+
+  it.each([
+    ["タイトルが空", { title: "  " }],
+    ["タイトルが長すぎる", { title: "あ".repeat(65) }],
+    ["http(s) 以外の URL", { "bbs-url": "javascript:alert(1)" }],
+    ["URL として解釈できない", { "toppage-url": "not a url" }],
+    ["メールアドレスの形式が不正", { email: "not-an-email" }],
+    ["不正なタイムゾーン", { timezone: "Mars/Olympus" }],
+    ["タイムゾーンが空", { timezone: "" }],
+    ["NG ワードが長すぎる", { "ng-words": "あ".repeat(65) }],
+  ])("POST /admin/site-settings: %s なら 400 で保存しない", async (_label, fields) => {
+    const testApp = setupTestApp({ adminEmails: [ADMIN_EMAIL] });
+    const admin = await loginAdmin(testApp);
+    const before = testApp.siteSettings.get();
+    const res = await postForm(
+      testApp.app,
+      "/admin/site-settings",
+      { _csrf: admin.csrfToken, title: "しま", timezone: "Asia/Tokyo", ...fields },
+      { cookie: admin.cookie },
+    );
+    expect(res.status).toBe(400);
+    expect(testApp.siteSettings.get()).toEqual(before);
+  });
+
+  it("管理者以外の POST /admin/site-settings は 403", async () => {
+    const testApp = setupTestApp({ adminEmails: [ADMIN_EMAIL] });
+    const auth = await loginAs(testApp, { id: "u1", name: "いっぱん", email: "u1@example.com" });
+    const res = await postForm(
+      testApp.app,
+      "/admin/site-settings",
+      { _csrf: auth.csrfToken, title: "のっとり", timezone: "UTC" },
+      { cookie: auth.cookie },
+    );
+    expect(res.status).toBe(403);
+    expect(testApp.siteSettings.get().title).not.toBe("のっとり");
+  });
+
   it("POST /admin/maximize: 島の資金・食料を最大化できる", async () => {
     const testApp = setupTestApp({ adminEmails: [ADMIN_EMAIL] });
     const owner = await loginAs(testApp, { id: "u1", name: "しまぬし", email: "u1@example.com" });

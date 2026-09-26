@@ -3,10 +3,11 @@
 // tmp/14-users-auth.md によりログイン状態のナビゲーションを追加する (Phase 6b)。
 import type { Child, PropsWithChildren } from "hono/jsx";
 import type { AuthUser } from "../../app/auth.ts";
-import type { GameConfig } from "../../core/config.ts";
+import type { SiteInfo } from "../../app/site-settings.ts";
 
 export interface LayoutProps {
-  config: GameConfig;
+  /** サイト設定のタイトル・フッタ情報 (管理画面「サイト設定」)。 */
+  site: SiteInfo;
   /** ログイン中のユーザー。未ログインなら undefined。 */
   user?: AuthUser | undefined;
   /** ログアウトフォーム用。未ログインなら undefined。 */
@@ -31,11 +32,11 @@ function UrlOrText({ value }: { value: string }) {
 }
 
 /**
- * フッタ。管理者名・メール・掲示板・トップページは環境変数が未設定 (空文字列) なら
+ * フッタ。管理者名・メール・掲示板・トップページはサイト設定が未設定 (空文字列) なら
  * 行ごと出さない。箱庭諸島のページ (配布元 URL) はライセンス上必須のため常に出す。
  */
-function Footer({ config }: { config: GameConfig }) {
-  const { adminName, email, bbsUrl, topPageUrl } = config.site;
+function Footer({ site }: { site: SiteInfo }) {
+  const { adminName, email, bbsUrl, topPageUrl } = site;
   const hasAdminName = adminName !== "";
   const hasEmail = email !== "";
   return (
@@ -97,18 +98,18 @@ function Footer({ config }: { config: GameConfig }) {
  * 利用頻度が低いためナビには置かず、フッタ先頭行に移した (Footer 参照)。
  */
 function Nav({
-  config,
+  site,
   user,
   csrfToken,
 }: {
-  config: GameConfig;
+  site: SiteInfo;
   user: AuthUser | undefined;
   csrfToken: string | undefined;
 }) {
   return (
     <nav class="nav">
       <a href="/" class="nav-title">
-        {config.site.title}
+        {site.title}
       </a>
       <div class="nav-links">
         {user === undefined ? (
@@ -149,7 +150,7 @@ function Nav({
 }
 
 export function Layout({
-  config,
+  site,
   user,
   csrfToken,
   extraHead,
@@ -160,7 +161,7 @@ export function Layout({
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>{config.site.title}</title>
+        <title>{site.title}</title>
         <link rel="stylesheet" href="/style.css" />
         {extraHead ?? ""}
       </head>
@@ -168,10 +169,10 @@ export function Layout({
         <p class="distribution-link">
           <a href={SCRIPT_SOURCE_URL}>箱庭諸島スクリプト配布元</a>
         </p>
-        <Nav config={config} user={user} csrfToken={csrfToken} />
+        <Nav site={site} user={user} csrfToken={csrfToken} />
         <main>{children}</main>
         <hr />
-        <Footer config={config} />
+        <Footer site={site} />
       </body>
     </html>
   );

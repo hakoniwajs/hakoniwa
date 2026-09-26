@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { defaultConfig } from "../core/config.ts";
 import {
   INITIAL_CLOCK,
   currentGameId,
@@ -199,7 +198,7 @@ describe("フッタ", () => {
 
   it("管理者名だけ設定なら「管理者:名前」のみ表示する (メールの括弧は付かない)", async () => {
     const { app } = setupTestApp({
-      gameOverrides: { site: { ...defaultConfig.site, adminName: "かんりしゃ" } },
+      site: { adminName: "かんりしゃ" },
     });
     const res = await app.request("/games/1");
     const html = await res.text();
@@ -209,7 +208,7 @@ describe("フッタ", () => {
 
   it("メールだけ設定なら「管理者:(mailto リンク)」を表示する", async () => {
     const { app } = setupTestApp({
-      gameOverrides: { site: { ...defaultConfig.site, email: "admin@example.com" } },
+      site: { email: "admin@example.com" },
     });
     const res = await app.request("/games/1");
     const html = await res.text();
@@ -218,14 +217,11 @@ describe("フッタ", () => {
 
   it("すべて設定されていれば管理者・掲示板・トップページの行を表示する", async () => {
     const { app } = setupTestApp({
-      gameOverrides: {
-        site: {
-          title: defaultConfig.site.title,
-          adminName: "かんりしゃ",
-          email: "admin@example.com",
-          bbsUrl: "https://example.com/bbs",
-          topPageUrl: "https://example.com/",
-        },
+      site: {
+        adminName: "かんりしゃ",
+        email: "admin@example.com",
+        bbsUrl: "https://example.com/bbs",
+        topPageUrl: "https://example.com/",
       },
     });
     const res = await app.request("/games/1");
@@ -239,7 +235,7 @@ describe("フッタ", () => {
 
   it("http(s) で始まらない掲示板 URL はリンクにせず文字列のまま表示する", async () => {
     const { app } = setupTestApp({
-      gameOverrides: { site: { ...defaultConfig.site, bbsUrl: "掲示板は別紙参照" } },
+      site: { bbsUrl: "掲示板は別紙参照" },
     });
     const res = await app.request("/games/1");
     const html = await res.text();

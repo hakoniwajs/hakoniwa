@@ -5,6 +5,7 @@ import { AdminService } from "../app/admin-service.ts";
 import { AuthMethodPolicy } from "../app/auth-methods.ts";
 import type { AuthMethodsFlags } from "../app/auth-methods.ts";
 import { GameService } from "../app/game-service.ts";
+import { SiteSettingsService } from "../app/site-settings.ts";
 import type { BackupStore, Clock, Logger, Mailer } from "../app/ports.ts";
 import { TurnService } from "../app/turn-service.ts";
 import { createMathRandomRng } from "../core/rng.ts";
@@ -45,6 +46,8 @@ export interface BuiltDeps {
   authMethods: AuthMethodPolicy;
   /** 管理者判定 (環境変数 + settings 表) と初期セットアップ。 */
   adminPolicy: AdminPolicy;
+  /** サイト設定 (管理画面「サイト設定」、settings 表 > 非推奨の環境変数 > 既定値)。 */
+  siteSettings: SiteSettingsService;
   gameService: GameService;
   turnService: TurnService;
   adminService: AdminService;
@@ -121,13 +124,14 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     );
   }
   const auth = createAuth({ driver, config, secret: authSecret, mailer, authMethods });
+  const siteSettings = new SiteSettingsService({ settings, fallback: config.siteDefaults });
 
   const gameService = new GameService({
     repo,
     clock,
     config: config.game,
     rng,
-    ngWords: config.ngWords,
+    siteSettings,
   });
 
   const turnService = new TurnService({
@@ -155,6 +159,7 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     adminPolicy,
     config,
     authSecret,
+    siteSettings,
     clock,
     auth,
     logger,
@@ -168,6 +173,7 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     mailer,
     authMethods,
     adminPolicy,
+    siteSettings,
     gameService,
     turnService,
     adminService,

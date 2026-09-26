@@ -185,17 +185,17 @@ describe("cli (tmp/16-season.md: 開始時刻・最終ターン)", () => {
     expect(status).toContain("状態(シーズン): ゲーム開始前");
   });
 
-  it("db init は HAKONIWA_START_AT / HAKONIWA_FINAL_TURN を既定値として使う", async () => {
-    const envWithDefaults = {
+  it("db init は廃止した HAKONIWA_START_AT / HAKONIWA_FINAL_TURN を読まない (省略時は無期限)", async () => {
+    const envWithDeprecated = {
       ...env,
       HAKONIWA_START_AT: "2026-10-01T21:00:00+09:00",
       HAKONIWA_FINAL_TURN: "200",
     };
-    expect(await runCli(["db", "init"], envWithDefaults, createIO())).toBe(0);
+    expect(await runCli(["db", "init"], envWithDeprecated, createIO())).toBe(0);
 
     const statusIO = createIO();
-    expect(await runCli(["db", "status"], envWithDefaults, statusIO)).toBe(0);
-    expect(statusIO.lines.join("\n")).toContain("最終ターン: 200");
+    expect(await runCli(["db", "status"], envWithDeprecated, statusIO)).toBe(0);
+    expect(statusIO.lines.join("\n")).toContain("最終ターン: 無期限");
   });
 
   it("game set-final-turn <N> で最終ターンを変更できる", async () => {
@@ -270,13 +270,13 @@ describe("cli (tmp/16-season.md: ターンの長さも DB に持つ)", () => {
     expect(statusIO.lines.join("\n")).toContain("1 ターンの長さ: 1分");
   });
 
-  it("db init は HAKONIWA_UNIT_TIME_SEC を既定値として使う", async () => {
-    const envWithDefault = { ...env, HAKONIWA_UNIT_TIME_SEC: "3600" };
-    expect(await runCli(["db", "init"], envWithDefault, createIO())).toBe(0);
+  it("db init は廃止した HAKONIWA_UNIT_TIME_SEC を読まない (省略時は 6 時間)", async () => {
+    const envWithDeprecated = { ...env, HAKONIWA_UNIT_TIME_SEC: "3600" };
+    expect(await runCli(["db", "init"], envWithDeprecated, createIO())).toBe(0);
 
     const statusIO = createIO();
-    await runCli(["db", "status"], envWithDefault, statusIO);
-    expect(statusIO.lines.join("\n")).toContain("1 ターンの長さ: 1時間");
+    await runCli(["db", "status"], envWithDeprecated, statusIO);
+    expect(statusIO.lines.join("\n")).toContain("1 ターンの長さ: 6時間");
   });
 
   it("game set-unit-time <sec> で1ターンの長さを変更できる", async () => {

@@ -6,7 +6,9 @@ import type { AdminStatus, AuthMethodsVM } from "../../app/admin-service.ts";
 import { formatDuration, formatTurnLabel, GAME_NOT_STARTED_LABEL } from "../../app/format.ts";
 import type { BackupInfo } from "../../app/ports.ts";
 import type { SeasonState } from "../../app/season.ts";
-import { formatDateTime, formatDateTimeLocalValue } from "../../app/timezone.ts";
+import { SITE_SETTINGS_LIMITS } from "../../app/site-settings.ts";
+import type { SiteSettings } from "../../app/site-settings.ts";
+import { formatDateTime } from "../../app/timezone.ts";
 import type { IslandSelectVM } from "../../app/view-models.ts";
 import { GamesTable } from "./games.tsx";
 
@@ -177,6 +179,104 @@ function AdminEmailsSection({
   );
 }
 
+/**
+ * サイト設定 (タイトル・フッタ・追加 NG ワード・ローカル掲示板・タイムゾーン)。
+ * 以前は環境変数で設定していたもの。保存すると settings 表に入り、すぐに反映される。
+ */
+function SiteSettingsForm({
+  siteSettings,
+  csrfToken,
+}: {
+  siteSettings: SiteSettings;
+  csrfToken: string;
+}) {
+  const L = SITE_SETTINGS_LIMITS;
+  return (
+    <form action="/admin/site-settings" method="post" class="site-settings-form">
+      <input type="hidden" name="_csrf" value={csrfToken} />
+      <p>
+        サイトタイトル
+        <br />
+        <input
+          type="text"
+          name="title"
+          size={32}
+          maxlength={L.title}
+          required
+          value={siteSettings.title}
+        />
+      </p>
+      <p>
+        管理者名 (空欄ならフッタに表示しません)
+        <br />
+        <input
+          type="text"
+          name="admin-name"
+          size={32}
+          maxlength={L.adminName}
+          value={siteSettings.adminName}
+        />
+      </p>
+      <p>
+        管理者の連絡先メールアドレス (空欄ならフッタに表示しません)
+        <br />
+        <input type="email" name="email" size={32} maxlength={L.email} value={siteSettings.email} />
+      </p>
+      <p>
+        掲示板の URL (空欄ならフッタに表示しません)
+        <br />
+        <input
+          type="url"
+          name="bbs-url"
+          size={48}
+          maxlength={L.url}
+          placeholder="https://"
+          value={siteSettings.bbsUrl}
+        />
+      </p>
+      <p>
+        トップページの URL (空欄ならフッタに表示しません)
+        <br />
+        <input
+          type="url"
+          name="toppage-url"
+          size={48}
+          maxlength={L.url}
+          placeholder="https://"
+          value={siteSettings.topPageUrl}
+        />
+      </p>
+      <p>
+        追加の NG ワード (1 行に 1 つ、またはカンマ区切り。同梱のリストに加えて島名・コメント・
+        掲示板の投稿を拒否します)
+        <br />
+        <textarea name="ng-words" rows={5} cols={40}>
+          {siteSettings.ngWords.join("\n")}
+        </textarea>
+      </p>
+      <p>
+        <label>
+          <input type="checkbox" name="use-lbbs" checked={siteSettings.useLbbs} />
+          島ごとのローカル掲示板を使う
+        </label>
+      </p>
+      <p>
+        タイムゾーン (日時の入力・表示に使います。例: Asia/Tokyo)
+        <br />
+        <input
+          type="text"
+          name="timezone"
+          size={32}
+          maxlength={L.timezone}
+          required
+          value={siteSettings.timezone}
+        />
+      </p>
+      <input type="submit" value="サイト設定を保存" />
+    </form>
+  );
+}
+
 /** 資金・食料の最大化。tmp/14-users-auth.md 「決定事項」6 (特殊パスワードの代わり)。 */
 function MaximizeForm({
   islands,
@@ -209,13 +309,13 @@ export interface AdminPageProps {
   /** 管理者の一覧 (環境変数由来 + 管理画面で追加した分)。 */
   adminEmails: AdminEmailsVM;
   islands: readonly IslandSelectVM[];
-  /** datetime-local の解釈・表示に使うタイムゾーン。tmp/16-season.md「タイムゾーン」節。 */
-  timezone: string;
   /**
-   * 「新しいデータを作る」フォームの既定値
-   * (HAKONIWA_START_AT / HAKONIWA_FINAL_TURN / HAKONIWA_UNIT_TIME_SEC 由来)。
+   * 現在のサイト設定。「サイト設定」フォームの初期値と、datetime-local の解釈・表示に使う
+   * タイムゾーン (tmp/16-season.md「タイムゾーン」節) に使う。
    */
-  initDefaults: { startAt?: number; finalTurn?: number; unitTimeSec: number };
+  siteSettings: SiteSettings;
+  /** 「新しいゲームを開始」フォームの 1 ターンの長さの既定値 (秒。`GameConfig.unitTimeSec`)。 */
+  defaultUnitTimeSec: number;
   csrfToken: string;
   notice: string | undefined;
 }
@@ -227,11 +327,11 @@ export interface AdminPageProps {
  */
 function StartGameForm({
   timezone,
-  initDefaults,
+  defaultUnitTimeSec,
   csrfToken,
 }: {
   timezone: string;
-  initDefaults: { startAt?: number; finalTurn?: number; unitTimeSec: number };
+  defaultUnitTimeSec: number;
   csrfToken: string;
 }) {
   return (
@@ -245,20 +345,12 @@ function StartGameForm({
       <p>
         開始日時 (省略時: 現在時刻を切り下げ。{timezone})
         <br />
-        <input
-          type="datetime-local"
-          name="start-at"
-          value={
-            initDefaults.startAt !== undefined
-              ? formatDateTimeLocalValue(initDefaults.startAt, timezone)
-              : ""
-          }
-        />
+        <input type="datetime-local" name="start-at" />
       </p>
       <p>
         最終ターン数 (省略時: 無期限)
         <br />
-        <input type="number" name="final-turn" min={1} value={initDefaults.finalTurn ?? ""} />
+        <input type="number" name="final-turn" min={1} />
       </p>
       <p>
         1 ターンの長さ
@@ -267,7 +359,7 @@ function StartGameForm({
           type="number"
           name="unit-hours"
           min={0}
-          value={splitHoursMinutes(initDefaults.unitTimeSec).hours}
+          value={splitHoursMinutes(defaultUnitTimeSec).hours}
         />
         時間
         <input
@@ -275,7 +367,7 @@ function StartGameForm({
           name="unit-minutes"
           min={0}
           max={59}
-          value={splitHoursMinutes(initDefaults.unitTimeSec).minutes}
+          value={splitHoursMinutes(defaultUnitTimeSec).minutes}
         />
         分
       </p>
@@ -307,11 +399,12 @@ export function AdminPage({
   authMethods,
   adminEmails,
   islands,
-  timezone,
-  initDefaults,
+  siteSettings,
+  defaultUnitTimeSec,
   csrfToken,
   notice,
 }: AdminPageProps) {
+  const { timezone } = siteSettings;
   return (
     <div class="admin-page">
       <h1>箱島２ メンテナンスツール</h1>
@@ -405,7 +498,11 @@ export function AdminPage({
           {/* tmp/18-games.md「ルート」節: 現在のゲームが無いか finished のときだけ表示する。 */}
           <h3>新しいゲームを開始</h3>
           {status.gameStatus === "finished" ? (
-            <StartGameForm timezone={timezone} initDefaults={initDefaults} csrfToken={csrfToken} />
+            <StartGameForm
+              timezone={timezone}
+              defaultUnitTimeSec={defaultUnitTimeSec}
+              csrfToken={csrfToken}
+            />
           ) : (
             <p>現在のゲームが終了していません。</p>
           )}
@@ -422,13 +519,21 @@ export function AdminPage({
           <h2>現役データ</h2>
           <p>まだゲームがありません。</p>
           <h3>新しいゲームを開始</h3>
-          <StartGameForm timezone={timezone} initDefaults={initDefaults} csrfToken={csrfToken} />
+          <StartGameForm
+            timezone={timezone}
+            defaultUnitTimeSec={defaultUnitTimeSec}
+            csrfToken={csrfToken}
+          />
         </div>
       )}
 
       <hr />
       <h2>ゲーム一覧</h2>
       <GamesTable games={status.games} currentGameId={status.gameId} timezone={timezone} />
+
+      <hr />
+      <h2>サイト設定</h2>
+      <SiteSettingsForm siteSettings={siteSettings} csrfToken={csrfToken} />
 
       <hr />
       <h2>ログイン方法</h2>

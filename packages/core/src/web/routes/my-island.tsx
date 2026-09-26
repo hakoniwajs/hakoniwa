@@ -32,7 +32,8 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
         config={deps.config.game}
         targets={targets}
         csrfToken={c.get("csrfToken") ?? ""}
-        timezone={deps.config.timezone}
+        timezone={deps.siteSettings.get().timezone}
+        useLbbs={deps.siteSettings.get().useLbbs}
       />,
     );
   });
@@ -51,7 +52,8 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
         config={deps.config.game}
         targets={targets}
         csrfToken={c.get("csrfToken") ?? ""}
-        timezone={deps.config.timezone}
+        timezone={deps.siteSettings.get().timezone}
+        useLbbs={deps.siteSettings.get().useLbbs}
         notice={result.notice}
       />,
     );
@@ -71,7 +73,8 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
         config={deps.config.game}
         targets={targets}
         csrfToken={c.get("csrfToken") ?? ""}
-        timezone={deps.config.timezone}
+        timezone={deps.siteSettings.get().timezone}
+        useLbbs={deps.siteSettings.get().useLbbs}
         notice={result.notice}
       />,
     );
@@ -91,7 +94,8 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
         config={deps.config.game}
         targets={targets}
         csrfToken={c.get("csrfToken") ?? ""}
-        timezone={deps.config.timezone}
+        timezone={deps.siteSettings.get().timezone}
+        useLbbs={deps.siteSettings.get().useLbbs}
         notice={result.notice}
       />,
     );
@@ -108,7 +112,7 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
       <TopPage
         vm={result}
         config={deps.config.game}
-        timezone={deps.config.timezone}
+        timezone={deps.siteSettings.get().timezone}
         now={deps.clock.now()}
         csrfToken={c.get("csrfToken")}
         notice={result.notice}
@@ -130,7 +134,8 @@ export function createMyIslandRoutes(deps: WebDeps): Hono<AppEnv> {
         config={deps.config.game}
         targets={targets}
         csrfToken={c.get("csrfToken") ?? ""}
-        timezone={deps.config.timezone}
+        timezone={deps.siteSettings.get().timezone}
+        useLbbs={deps.siteSettings.get().useLbbs}
         notice={result.notice}
       />,
     );

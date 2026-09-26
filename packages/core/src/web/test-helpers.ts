@@ -11,6 +11,8 @@ import {
   FakeSettingsRepository,
 } from "../app/fake-repository.ts";
 import { GameService } from "../app/game-service.ts";
+import { defaultSiteSettings, SiteSettingsService } from "../app/site-settings.ts";
+import type { SiteSettings } from "../app/site-settings.ts";
 import { TurnService } from "../app/turn-service.ts";
 import type { GameMeta } from "../app/ports.ts";
 import { createCsrfToken } from "../bootstrap/csrf.ts";
@@ -129,7 +131,11 @@ export interface SetupOptions {
   adminEnabled?: boolean;
   devLogin?: boolean;
   adminEmails?: string[];
-  ngWords?: string[];
+  /**
+   * サイト設定の初期値 (環境変数相当の `AppConfig.siteDefaults`)。省略した項目は
+   * `defaultSiteSettings`。管理画面から保存した値は `testApp.siteSettings` で確認できる。
+   */
+  site?: Partial<SiteSettings>;
   gameOverrides?: Partial<GameConfig>;
   /** 初期化 (repo.initialize) をスキップする (not_initialized のテスト用)。 */
   skipInit?: boolean;
@@ -141,8 +147,6 @@ export interface SetupOptions {
   lastTime?: number;
   /** tmp/16-season.md「ターンの長さも DB に持つ」節のテスト用。省略時は config.unitTimeSec。 */
   unitTimeSec?: number;
-  /** 省略時は "Asia/Tokyo"。 */
-  timezone?: string;
   /**
    * ログイン方法の「設定済みか」(環境変数相当)。省略時は x/discord 無効・email 有効
    * (既存テストの挙動どおり)。X / Discord ログインボタンの表示を確認するテスト用に上書きできる。
@@ -155,6 +159,7 @@ export interface TestApp {
   repo: FakeGameRepository;
   clock: FakeClock;
   config: AppConfig;
+  siteSettings: SiteSettingsService;
   gameService: GameService;
   turnService: TurnService;
   adminService: AdminService;
@@ -197,13 +202,16 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
       adminEmails: options.adminEmails ?? [],
     },
     mail: { mailFrom: "hakoniwa@example.com" },
-    ngWords: options.ngWords ?? [],
     adminEnabled: options.adminEnabled ?? true,
     debug,
-    timezone: options.timezone ?? "Asia/Tokyo",
+    siteDefaults: { ...defaultSiteSettings, ...options.site },
   };
 
-  const gameService = new GameService({ repo, clock, config: game, rng, ngWords: config.ngWords });
+  const siteSettings = new SiteSettingsService({
+    settings: new FakeSettingsRepository(),
+    fallback: config.siteDefaults,
+  });
+  const gameService = new GameService({ repo, clock, config: game, rng, siteSettings });
 
   const turnService = new TurnService({ repo, config: game, rng, backupStore, logger });
   const settings = new FakeSettingsRepository();
@@ -230,6 +238,7 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
     adminPolicy,
     config,
     authSecret,
+    siteSettings,
     clock,
     auth: auth as unknown as WebDeps["auth"],
     logger,
@@ -248,6 +257,7 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
     settings,
     logger,
     authSecret,
+    siteSettings,
     auth,
   };
 }

@@ -1,6 +1,7 @@
 // 実 DB (:memory:) + buildDeps で GameService/TurnService を結合テストする。
 import {
   buildDeps,
+  defaultSiteSettings,
   CommandKind,
   createSeededRng,
   defaultConfig,
@@ -34,10 +35,9 @@ function setup(
       adminEmails: [],
     },
     mail: { mailFrom: "hakoniwa@example.com" },
-    ngWords: [],
     adminEnabled: true,
     debug: false,
-    timezone: "Asia/Tokyo",
+    siteDefaults: defaultSiteSettings,
   };
   const deps = buildDeps({
     driver,
@@ -130,10 +130,9 @@ describe("turn-integration (実 DB)", () => {
         adminEmails: [],
       },
       mail: { mailFrom: "hakoniwa@example.com" },
-      ngWords: [],
       adminEnabled: true,
       debug: false,
-      timezone: "Asia/Tokyo",
+      siteDefaults: defaultSiteSettings,
     };
     const deps = buildDeps({ driver, backupStore, clock, config, rng: createSeededRng(42) });
     deps.adminService.initialize(clock.now(), { finalTurn: 2 });

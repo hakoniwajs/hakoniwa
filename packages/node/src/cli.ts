@@ -44,9 +44,9 @@ const HELP_TEXT = `hakoniwa CLI
   db init                ゲームが無いときだけ新しいゲームを開始する (game new のエイリアス。
                           既にゲームがあれば running/finished を問わず失敗する)
     --start-at <ISO8601>    ターン 1 の処理が実行される時刻 (ゲーム開始。
-                             省略時: HAKONIWA_START_AT、それも無ければ現在時刻を切り下げ)
-    --final-turn <N>        最終ターン数 (省略時: HAKONIWA_FINAL_TURN、それも無ければ無期限)
-    --unit-time <値>        1 ターンの長さ (省略時: HAKONIWA_UNIT_TIME_SEC。
+                             省略時: 現在時刻を切り下げ)
+    --final-turn <N>        最終ターン数 (省略時: 無期限)
+    --unit-time <値>        1 ターンの長さ (省略時: 6h。
                              "6h"/"90m"/"1h30m"/"3600" (数字のみは秒) を受け付ける)
   db reset --yes         現役データを削除する (要 --yes)
                           ※ v1 (パスワード認証) の DB は v2 (better-auth) のスキーマと
@@ -60,7 +60,7 @@ const HELP_TEXT = `hakoniwa CLI
     --name <名前>            省略時「第 N 回」
     --start-at <ISO8601>     ターン 1 の処理が実行される時刻 (ゲーム開始。省略時: 現在時刻を切り下げ)
     --final-turn <N>         省略時: 無期限
-    --unit-time <値>         省略時: HAKONIWA_UNIT_TIME_SEC。
+    --unit-time <値>         省略時: 6h。
                              "6h"/"90m"/"1h30m"/"3600" (数字のみは秒) を受け付ける
   game finish             現在のゲームを終了する (running でなければ失敗、終了コード 1)
   game list               ゲーム一覧 (現在 + 過去) を表示する
@@ -140,13 +140,10 @@ async function runDb(
   switch (sub) {
     case "init": {
       const startAtRaw = values["start-at"];
-      const startAt =
-        startAtRaw !== undefined ? parseUnixOrIso8601(startAtRaw) : node.config.startAt;
+      const startAt = startAtRaw !== undefined ? parseUnixOrIso8601(startAtRaw) : undefined;
       const finalTurnRaw = values["final-turn"];
       const finalTurn =
-        finalTurnRaw !== undefined
-          ? parsePositiveIntArg(finalTurnRaw, "--final-turn")
-          : node.config.finalTurn;
+        finalTurnRaw !== undefined ? parsePositiveIntArg(finalTurnRaw, "--final-turn") : undefined;
       const unitTimeSecRaw = values["unit-time"];
       const unitTimeSec =
         unitTimeSecRaw !== undefined ? parseDurationArg(unitTimeSecRaw, "--unit-time") : undefined;
@@ -181,7 +178,7 @@ async function runDb(
         io.stdout(`最終更新時間: ${formatTimestamp(status.lastTime ?? 0)}`);
         io.stdout(`島数: ${islandCount}`);
         if (status.season !== undefined) {
-          const { timezone } = node.config;
+          const { timezone } = node.siteSettings.get();
           io.stdout(`開始時刻: ${formatDateTime(status.season.startAt, timezone)} (${timezone})`);
           io.stdout(`最終ターン: ${status.season.finalTurn ?? "無期限"}`);
           io.stdout(`1 ターンの長さ: ${formatDuration(status.season.unitTimeSec)}`);

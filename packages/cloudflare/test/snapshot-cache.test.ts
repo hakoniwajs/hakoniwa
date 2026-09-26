@@ -11,7 +11,7 @@ import { createExecutionContext, reset, waitOnExecutionContext } from "cloudflar
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it } from "vitest";
 import worker from "../src/worker.ts";
-import { islandSnapshotKey, topSnapshotKey } from "../src/snapshot.ts";
+import { islandSnapshotKey, siteSnapshotKey, topSnapshotKey } from "../src/snapshot.ts";
 import type { Env } from "../src/env.ts";
 
 afterEach(async () => {
@@ -89,6 +89,24 @@ async function createIsland(
   });
   if (res.status !== 200) {
     throw new Error(`createIsland failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+/** 管理画面の「サイト設定」を保存する (DO への直接 fetch)。 */
+async function saveSiteSettings(
+  cookie: string,
+  csrfToken: string,
+  fields: Record<string, string>,
+): Promise<void> {
+  const stub = mainGameStub();
+  const body = new URLSearchParams({ timezone: "Asia/Tokyo", ...fields, _csrf: csrfToken });
+  const res = await stub.fetch("http://example.com/admin/site-settings", {
+    method: "POST",
+    headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  if (res.status !== 200) {
+    throw new Error(`saveSiteSettings failed: ${res.status} ${await res.text()}`);
   }
 }
 
@@ -255,7 +273,7 @@ describe("KV スナップショットキャッシュ (tmp/21-kv-snapshot-cache.m
 
       const runningTop = await stub.pageSnapshot({ kind: "top", gameId: 1 });
       const runningIsland = await stub.pageSnapshot({ kind: "island", gameId: 1, islandId });
-      // 既定の HAKONIWA_UNIT_TIME_SEC (21600) は既定の HAKONIWA_SNAPSHOT_TTL_SEC (60) より
+      // 既定の 1 ターンの長さ (21600 秒) は既定の HAKONIWA_SNAPSHOT_TTL_SEC (60) より
       // 十分大きいため、進行中は ttlSec (60) がそのまま採用される。
       expect(runningTop?.ttl).toBe(60);
       expect(runningIsland?.ttl).toBe(60);
@@ -291,6 +309,49 @@ describe("KV スナップショットキャッシュ (tmp/21-kv-snapshot-cache.m
       expect(pastIsland?.ttl).toBe(2_592_000);
     },
   );
+
+  it("サイト設定 (管理画面) は DO から受け取って KV の共通キーに置き、Worker 側レンダリングに使う", async () => {
+    const { cookie, csrfToken } = await loginAsAdmin();
+    await startGame(cookie, csrfToken);
+    await createIsland(cookie, csrfToken, 1, "ごごう");
+    await saveSiteSettings(cookie, csrfToken, {
+      title: "かんりがめんのしま",
+      "admin-name": "かんりにん",
+      "use-lbbs": "on",
+    });
+
+    const miss = await fetchWorker("http://example.com/games/1");
+    expect(miss.headers.get("X-Hakoniwa-Snapshot")).toBe("miss");
+    const missHtml = await miss.text();
+    expect(missHtml).toContain("<title>かんりがめんのしま</title>");
+    expect(missHtml).toContain("管理者:かんりにん");
+    // サイト設定の KV キーには NG ワードを含めない (描画に必要なものだけ)。
+    const storedSite = await env.SNAPSHOT?.get<{ site: Record<string, unknown> }>(
+      siteSnapshotKey(),
+      "json",
+    );
+    expect(storedSite?.site).toMatchObject({ title: "かんりがめんのしま", useLbbs: true });
+    expect(storedSite?.site).not.toHaveProperty("ngWords");
+
+    // 島ページ (ローカル掲示板の有無・OGP タイトルもサイト設定に従う)。
+    const island = await fetchWorker("http://example.com/games/1/islands/1");
+    const islandHtml = await island.text();
+    expect(islandHtml).toContain('content="ごごう島 - かんりがめんのしま"');
+    expect(islandHtml).toContain("観光者通信");
+
+    // サイト設定を変えても、KV のサイト設定が残っている間 (短期 TTL) は古い値で hit する。
+    await saveSiteSettings(cookie, csrfToken, { title: "あたらしいたいとる" });
+    const hit = await fetchWorker("http://example.com/games/1");
+    expect(hit.headers.get("X-Hakoniwa-Snapshot")).toBe("hit");
+    expect(await hit.text()).toContain("<title>かんりがめんのしま</title>");
+
+    // サイト設定のキーが期限切れになれば (ここでは削除で再現)、ページの View Model が KV に
+    // 残っていても DO から取り直し、新しいサイト設定で描画する。
+    await env.SNAPSHOT?.delete(siteSnapshotKey());
+    const refreshed = await fetchWorker("http://example.com/games/1");
+    expect(refreshed.headers.get("X-Hakoniwa-Snapshot")).toBe("miss");
+    expect(await refreshed.text()).toContain("<title>あたらしいたいとる</title>");
+  });
 
   it("対象のゲーム/島が無ければ pageSnapshot は undefined を返し、DO への通常経路にフォールバックする", async () => {
     const res = await fetchWorker("http://example.com/games/999");

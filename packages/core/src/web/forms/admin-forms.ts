@@ -2,6 +2,12 @@
 // 「ログイン方法の設定」節のフォームパース。v2 でパスワード欄は撤去された (セッション + isAdmin で保護)。
 import { AppError } from "../../app/errors.ts";
 import type { AuthMethodsFlags } from "../../app/auth-methods.ts";
+import {
+  isValidTimeZone,
+  parseNgWordsText,
+  SITE_SETTINGS_LIMITS,
+} from "../../app/site-settings.ts";
+import type { SiteSettings } from "../../app/site-settings.ts";
 import { parseLocalDateTime } from "../../app/timezone.ts";
 import { field } from "./common.ts";
 
@@ -37,7 +43,7 @@ export function parseAdminLastTimeForm(
   }
   if (datetimeRaw !== "") {
     // datetime-local: "YYYY-MM-DDTHH:mm" (ローカル時刻扱い。タイムゾーン情報を含まない)。
-    // tmp/16-season.md「タイムゾーン」節: HAKONIWA_TIMEZONE で解釈する (実行環境依存の
+    // tmp/16-season.md「タイムゾーン」節: サイト設定のタイムゾーンで解釈する (実行環境依存の
     // `new Date(datetimeRaw)` は使わない)。
     try {
       return { unix: parseLocalDateTime(datetimeRaw, timezone) };
@@ -195,5 +201,74 @@ export function parseAuthMethodsForm(body: Record<string, string>): AuthMethodsF
     x: parseCheckbox(body, "x"),
     discord: parseCheckbox(body, "discord"),
     email: parseCheckbox(body, "email"),
+  };
+}
+
+function requireMaxLength(value: string, max: number, name: string): string {
+  if (value.length > max) {
+    throw new AppError("invalid_input", `${name} must be at most ${max} characters`);
+  }
+  return value;
+}
+
+/** 空欄か `http://` / `https://` の URL だけ受け付ける (javascript: 等を弾く)。 */
+function parseOptionalHttpUrl(body: Record<string, string>, name: string): string {
+  const raw = requireMaxLength(field(body, name).trim(), SITE_SETTINGS_LIMITS.url, name);
+  if (raw === "") {
+    return "";
+  }
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new AppError("invalid_input", `${name} must be a valid URL`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new AppError("invalid_input", `${name} must be an http(s) URL`);
+  }
+  return raw;
+}
+
+/**
+ * 管理画面の「サイト設定」フォーム (`POST /admin/site-settings`)。
+ * サイトタイトルとタイムゾーンは必須。管理者名・メール・掲示板 URL・トップページ URL は
+ * 空欄可 (フッタの該当行を出さない)。追加 NG ワードは改行区切りかカンマ区切り。
+ */
+export function parseSiteSettingsForm(body: Record<string, string>): SiteSettings {
+  const L = SITE_SETTINGS_LIMITS;
+  const title = requireMaxLength(field(body, "title").trim(), L.title, "title");
+  if (title === "") {
+    throw new AppError("invalid_input", "title is required");
+  }
+  const adminName = requireMaxLength(field(body, "admin-name").trim(), L.adminName, "admin-name");
+  const email = requireMaxLength(field(body, "email").trim(), L.email, "email");
+  if (email !== "" && !/^[^\s@]+@[^\s@]+$/.test(email)) {
+    throw new AppError("invalid_input", "email must be a valid email address");
+  }
+  const bbsUrl = parseOptionalHttpUrl(body, "bbs-url");
+  const topPageUrl = parseOptionalHttpUrl(body, "toppage-url");
+
+  const ngWords = parseNgWordsText(field(body, "ng-words"));
+  if (ngWords.length > L.ngWordsCount) {
+    throw new AppError("invalid_input", `ng-words must be at most ${L.ngWordsCount} words`);
+  }
+  for (const word of ngWords) {
+    requireMaxLength(word, L.ngWord, "ng-words");
+  }
+
+  const timezone = requireMaxLength(field(body, "timezone").trim(), L.timezone, "timezone");
+  if (!isValidTimeZone(timezone)) {
+    throw new AppError("invalid_input", "timezone must be a valid IANA time zone name");
+  }
+
+  return {
+    title,
+    adminName,
+    email,
+    bbsUrl,
+    topPageUrl,
+    ngWords,
+    useLbbs: parseCheckbox(body, "use-lbbs"),
+    timezone,
   };
 }

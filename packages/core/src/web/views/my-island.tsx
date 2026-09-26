@@ -215,6 +215,8 @@ export interface MyIslandPageProps {
   csrfToken: string;
   notice?: string;
   timezone: string;
+  /** ローカル掲示板を表示するか (サイト設定)。 */
+  useLbbs: boolean;
 }
 
 /** 開発画面。Perl 版 tempOwner + tempLbbs* + tempRecent(1)。旧 web/views/owner.tsx。 */
@@ -225,6 +227,7 @@ export function MyIslandPage({
   csrfToken,
   notice,
   timezone,
+  useLbbs,
 }: MyIslandPageProps) {
   // tmp/18-games.md「表示」節: コメント・名前変更・計画登録は現在のゲームかつ終了していないときだけ
   // (tmp/16-season.md「開始前の状態 (追加要件)」節: 開始前でも許可する。計画登録も含む)。
@@ -308,7 +311,7 @@ export function MyIslandPage({
         ""
       )}
 
-      {config.useLbbs ? (
+      {useLbbs ? (
         <>
           <hr />
           <LbbsHead islandName={vm.name} />

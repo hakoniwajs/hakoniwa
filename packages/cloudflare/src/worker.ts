@@ -16,11 +16,24 @@
 // 応答する (`tryServeFromSnapshot`)。HTML 自体はキャッシュしない (`Cache-Control` は従来どおり
 // `private, no-store`) ので、「次のターンまであと N 分」はリクエスト時刻で再計算され古くならない。
 // 対象外・KV 未バインド・キャッシュにも DO にも無ければ、従来どおり DO への HTTP 転送に委ねる。
+// サイト設定 (タイトル・フッタ・タイムゾーン等) は管理画面から変わり DO の settings 表にあるため、
+// 環境変数からは読まず、DO の `pageSnapshot` が返したものを KV (`siteSnapshotKey()`、短期 TTL) に
+// 置いて使う。View Model とサイト設定の両方が KV にあるときだけ hit として KV から応答する。
 import { renderIslandPageHtml, renderTopPageHtml } from "@hakoniwajs/core";
 import type { Env } from "./env.ts";
 import { HakoniwaGame, loadWorkerConfig } from "./game-object.ts";
-import { fromIslandPageSnapshotVM, islandSnapshotKey, topSnapshotKey } from "./snapshot.ts";
-import type { IslandPageSnapshotEnvelope, TopPageSnapshotEnvelope } from "./snapshot.ts";
+import {
+  fromIslandPageSnapshotVM,
+  islandSnapshotKey,
+  siteSnapshotKey,
+  topSnapshotKey,
+} from "./snapshot.ts";
+import type {
+  IslandPageSnapshotEnvelope,
+  PageSnapshotResult,
+  SiteSnapshotEnvelope,
+  TopPageSnapshotEnvelope,
+} from "./snapshot.ts";
 
 /** `createWorker` のオプション。 */
 export interface CreateWorkerOptions {
@@ -90,6 +103,21 @@ function withBypassHeader(response: Response): Response {
   return copy;
 }
 
+/** DO から受け取ったページの View Model とサイト設定を、それぞれの TTL で KV に保存する。 */
+async function putSnapshots(
+  snapshot: KVNamespace,
+  key: string,
+  result: PageSnapshotResult,
+): Promise<void> {
+  const siteEnvelope: SiteSnapshotEnvelope = { site: result.site };
+  await Promise.all([
+    snapshot.put(key, JSON.stringify({ vm: result.vm }), { expirationTtl: result.ttl }),
+    snapshot.put(siteSnapshotKey(), JSON.stringify(siteEnvelope), {
+      expirationTtl: result.siteTtl,
+    }),
+  ]);
+}
+
 /**
  * 未ログイン GET の `/games/:gameId` / `/games/:gameId/islands/:id` を KV スナップショット
  * (View Model の JSON) から応答する。対象外リクエスト、`env.SNAPSHOT` 未バインド、
@@ -128,12 +156,15 @@ async function tryServeFromSnapshot(
     const gameId = Number(topMatch[1]);
     const key = topSnapshotKey(gameId);
 
-    const cached = await snapshot.get<TopPageSnapshotEnvelope>(key, "json");
-    if (cached !== null) {
+    const [cached, cachedSite] = await Promise.all([
+      snapshot.get<TopPageSnapshotEnvelope>(key, "json"),
+      snapshot.get<SiteSnapshotEnvelope>(siteSnapshotKey(), "json"),
+    ]);
+    if (cached !== null && cachedSite !== null) {
       const html = await renderTopPageHtml({
         vm: cached.vm,
         config: config.game,
-        timezone: config.timezone,
+        site: cachedSite.site,
         now,
       });
       return snapshotResponse(html, "hit");
@@ -149,11 +180,10 @@ async function tryServeFromSnapshot(
     const html = await renderTopPageHtml({
       vm: result.vm,
       config: config.game,
-      timezone: config.timezone,
+      site: result.site,
       now,
     });
-    const envelope: TopPageSnapshotEnvelope = { vm: result.vm };
-    ctx.waitUntil(snapshot.put(key, JSON.stringify(envelope), { expirationTtl: result.ttl }));
+    ctx.waitUntil(putSnapshots(snapshot, key, result));
     return snapshotResponse(html, "miss");
   }
 
@@ -166,10 +196,18 @@ async function tryServeFromSnapshot(
   const key = islandSnapshotKey(gameId, islandId);
   const origin = config.auth.baseUrl ?? url.origin;
 
-  const cached = await snapshot.get<IslandPageSnapshotEnvelope>(key, "json");
-  if (cached !== null) {
+  const [cached, cachedSite] = await Promise.all([
+    snapshot.get<IslandPageSnapshotEnvelope>(key, "json"),
+    snapshot.get<SiteSnapshotEnvelope>(siteSnapshotKey(), "json"),
+  ]);
+  if (cached !== null && cachedSite !== null) {
     const vm = fromIslandPageSnapshotVM(cached.vm, config.game.islandSize);
-    const html = await renderIslandPageHtml({ vm, config: config.game, origin });
+    const html = await renderIslandPageHtml({
+      vm,
+      config: config.game,
+      site: cachedSite.site,
+      origin,
+    });
     return snapshotResponse(html, "hit");
   }
 
@@ -181,9 +219,8 @@ async function tryServeFromSnapshot(
     throw new Error("HakoniwaGame.pageSnapshot: expected kind 'island'");
   }
   const vm = fromIslandPageSnapshotVM(result.vm, config.game.islandSize);
-  const html = await renderIslandPageHtml({ vm, config: config.game, origin });
-  const envelope: IslandPageSnapshotEnvelope = { vm: result.vm };
-  ctx.waitUntil(snapshot.put(key, JSON.stringify(envelope), { expirationTtl: result.ttl }));
+  const html = await renderIslandPageHtml({ vm, config: config.game, site: result.site, origin });
+  ctx.waitUntil(putSnapshots(snapshot, key, result));
   return snapshotResponse(html, "miss");
 }
 

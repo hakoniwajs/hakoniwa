@@ -12,6 +12,8 @@ import { BackLink, Notice } from "./messages.tsx";
 export interface IslandPageProps {
   vm: IslandPageVM;
   config: GameConfig;
+  /** ローカル掲示板を表示するか (サイト設定)。 */
+  useLbbs: boolean;
   /** ログイン中のみ渡ってくる (未ログインなら記帳フォームの代わりにログイン導線を出す)。 */
   csrfToken?: string | undefined;
   notice?: string;
@@ -22,14 +24,23 @@ export interface IslandPageProps {
  * 付けない (呼び出し側 (routes/islands.tsx) も同様)。
  * `origin` は絶対 URL のベース (`config.auth.baseUrl` があればそれ、無ければリクエストのオリジン)。
  */
-export function IslandOgpHead({ vm, origin }: { vm: IslandPageVM; origin: string }) {
+export function IslandOgpHead({
+  vm,
+  origin,
+  siteTitle,
+}: {
+  vm: IslandPageVM;
+  origin: string;
+  /** サイト設定のタイトル。og:title は「<島名>島 - <サイトタイトル>」。 */
+  siteTitle: string;
+}) {
   // tmp/18-games.md「表示」節: og:url もゲーム ID 入りの URL にする。
   const pageUrl = `${origin}/games/${vm.game.id}/islands/${vm.id}`;
   const imageUrl = `${origin}${vm.ogp.imagePath}`;
   return (
     <>
       <meta property="og:type" content="website" />
-      <meta property="og:title" content={vm.ogp.title} />
+      <meta property="og:title" content={`${vm.name}島 - ${siteTitle}`} />
       <meta property="og:description" content={vm.ogp.description} />
       <meta property="og:image" content={imageUrl} />
       <meta property="og:image:width" content={String(vm.ogp.width)} />
@@ -41,7 +52,7 @@ export function IslandOgpHead({ vm, origin }: { vm: IslandPageVM; origin: string
 }
 
 /** 観光画面。Perl 版 printIslandMain。 */
-export function IslandPage({ vm, config, csrfToken, notice }: IslandPageProps) {
+export function IslandPage({ vm, config, useLbbs, csrfToken, notice }: IslandPageProps) {
   return (
     <div class="island-page">
       {notice !== undefined ? <Notice message={notice} /> : ""}
@@ -57,7 +68,7 @@ export function IslandPage({ vm, config, csrfToken, notice }: IslandPageProps) {
       </div>
       <IslandMap terrain={vm.terrain} mode="visitor" turn={vm.turn} config={config} />
 
-      {config.useLbbs ? (
+      {useLbbs ? (
         <>
           <hr />
           <LbbsHead islandName={vm.name} />

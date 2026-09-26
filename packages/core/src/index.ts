@@ -2,13 +2,7 @@
 // Phase 0 時点では core の主要な型・関数のみを re-export する。
 // Adapter 向け API (buildDeps, migrate 等) は Phase 3 以降で追加する。
 
-export type {
-  GameConfig,
-  GameUnits,
-  DisasterConfig,
-  OilConfig,
-  SiteConfig,
-} from "./core/config.ts";
+export type { GameConfig, GameUnits, DisasterConfig, OilConfig } from "./core/config.ts";
 export { defaultConfig } from "./core/config.ts";
 
 export type { CommandSpec, MonsterSpec, MonsterSpecial } from "./core/constants.ts";
@@ -198,6 +192,21 @@ export type { SeasonState, SeasonVM } from "./app/season.ts";
 export { isFinished, isBeforeStart, buildSeasonVM } from "./app/season.ts";
 
 export { parseLocalDateTime, formatDateTime, formatDateTimeLocalValue } from "./app/timezone.ts";
+
+export type {
+  SiteInfo,
+  SiteSettings,
+  SiteRenderSettings,
+  SiteSettingsReader,
+  SiteSettingsServiceDeps,
+} from "./app/site-settings.ts";
+export {
+  defaultSiteSettings,
+  isValidTimeZone,
+  parseNgWordsText,
+  SiteSettingsService,
+  toSiteRenderSettings,
+} from "./app/site-settings.ts";
 
 export {
   formatDuration,

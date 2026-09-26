@@ -3,6 +3,8 @@
 // packages/node/src/config.ts が持つ。
 import { defaultConfig } from "../core/config.ts";
 import type { GameConfig } from "../core/config.ts";
+import { defaultSiteSettings } from "../app/site-settings.ts";
+import type { SiteSettings } from "../app/site-settings.ts";
 
 export interface OAuthClientConfig {
   clientId: string;
@@ -42,22 +44,17 @@ export interface AppConfig {
   game: GameConfig;
   auth: AuthConfig;
   mail: MailConfig;
-  /** HAKONIWA_NG_WORDS (カンマ区切り) 由来の追加 NG ワード。 */
-  ngWords: string[];
   adminEnabled: boolean;
   debug: boolean;
   /**
-   * datetime-local の解釈と画面の日時表示に使う IANA タイムゾーン名。tmp/16-season.md
-   * 「タイムゾーン」節。`HAKONIWA_TIMEZONE` (既定 `Asia/Tokyo`)。
+   * サイト設定 (app/site-settings.ts) のうち、settings 表に値が無い項目に使う値。
+   * 非推奨の環境変数 (HAKONIWA_SITE_TITLE / HAKONIWA_ADMIN_NAME / HAKONIWA_EMAIL /
+   * HAKONIWA_BBS_URL / HAKONIWA_TOPPAGE_URL / HAKONIWA_NG_WORDS / HAKONIWA_USE_LBBS /
+   * HAKONIWA_TIMEZONE) があればその値、無ければ `defaultSiteSettings`。
+   * 既存デプロイの互換のためだけに残している。新規には管理画面の「サイト設定」を使う。
+   * 実行中の値は必ず `SiteSettingsService.get()` から読むこと (この値は起動時のまま変わらない)。
    */
-  timezone: string;
-  /**
-   * `HAKONIWA_START_AT` (ISO 8601) 由来。管理画面の初期化フォームの既定値、CLI `db init` の
-   * 既定値として使う (未指定なら「現在時刻を unitTimeSec で切り下げ」が既定のまま)。
-   */
-  startAt?: number;
-  /** `HAKONIWA_FINAL_TURN` 由来。未設定なら初期化フォーム/CLI の既定は無期限のまま。 */
-  finalTurn?: number;
+  siteDefaults: SiteSettings;
 }
 
 function parseBool(name: string, raw: string | undefined, fallback: boolean): boolean {
@@ -123,33 +120,24 @@ function parseOAuthClientConfig(
   return { clientId: id, clientSecret: secret };
 }
 
-/** `HAKONIWA_START_AT` (ISO 8601) を unix 秒に変換する。`Date.parse` で解釈できなければ Error。 */
-function parseStartAt(raw: string | undefined): number | undefined {
-  const value = nonEmpty(raw);
-  if (value === undefined) {
-    return undefined;
-  }
-  const ms = Date.parse(value);
-  if (Number.isNaN(ms)) {
-    throw new Error(
-      `loadConfigFromEnv: HAKONIWA_START_AT must be a valid ISO 8601 datetime (got: ${JSON.stringify(value)})`,
-    );
-  }
-  return Math.floor(ms / 1000);
-}
-
-/** `HAKONIWA_FINAL_TURN` を正の整数に変換する。未設定なら undefined。 */
-function parseFinalTurnEnv(raw: string | undefined): number | undefined {
-  const value = nonEmpty(raw);
-  if (value === undefined) {
-    return undefined;
-  }
-  if (!/^\d+$/.test(value) || Number(value) <= 0) {
-    throw new Error(
-      `loadConfigFromEnv: HAKONIWA_FINAL_TURN must be a positive integer (got: ${JSON.stringify(value)})`,
-    );
-  }
-  return Number(value);
+/**
+ * 非推奨の環境変数からサイト設定の既定値を組み立てる (settings 表に値が無い場合の互換用)。
+ * Cloudflare の wrangler.jsonc vars は key を省略できず空文字列を置くことがあるため、
+ * undefined だけでなく "" も「未設定」として既定値にフォールバックする。
+ * @deprecated 環境変数ではなく管理画面の「サイト設定」を使う。
+ */
+function loadDeprecatedSiteDefaults(env: Record<string, string | undefined>): SiteSettings {
+  const d = defaultSiteSettings;
+  return {
+    title: nonEmpty(env.HAKONIWA_SITE_TITLE) ?? d.title,
+    adminName: nonEmpty(env.HAKONIWA_ADMIN_NAME) ?? d.adminName,
+    email: nonEmpty(env.HAKONIWA_EMAIL) ?? d.email,
+    bbsUrl: nonEmpty(env.HAKONIWA_BBS_URL) ?? d.bbsUrl,
+    topPageUrl: nonEmpty(env.HAKONIWA_TOPPAGE_URL) ?? d.topPageUrl,
+    ngWords: parseCsvList(env.HAKONIWA_NG_WORDS),
+    useLbbs: parseBool("HAKONIWA_USE_LBBS", nonEmpty(env.HAKONIWA_USE_LBBS), d.useLbbs),
+    timezone: nonEmpty(env.HAKONIWA_TIMEZONE) ?? d.timezone,
+  };
 }
 
 function loadMailConfig(env: Record<string, string | undefined>): MailConfig {
@@ -184,24 +172,21 @@ function loadAuthConfig(env: Record<string, string | undefined>): AuthConfig {
   };
 }
 
-/** 環境変数から `AppConfig` を組み立てる。不正な値 (真偽値/数値としてパースできない) は Error を throw する。 */
+/**
+ * 環境変数から `AppConfig` を組み立てる。不正な値 (真偽値/数値としてパースできない) は Error を throw する。
+ *
+ * 次の環境変数は廃止した (読まない): HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT /
+ * HAKONIWA_FINAL_TURN。いずれも「新しいゲームを開始」フォームと CLI `game new` / `db init` の
+ * 既定値にしか使われておらず、フォーム/CLI の引数で明示できるため。
+ */
 export function loadConfigFromEnv(env: Record<string, string | undefined>): AppConfig {
   const debug = parseBool("HAKONIWA_DEBUG", env.HAKONIWA_DEBUG, defaultConfig.debug);
   const adminEnabled = parseBool("HAKONIWA_ADMIN_ENABLED", env.HAKONIWA_ADMIN_ENABLED, true);
-  const useLbbs = parseBool("HAKONIWA_USE_LBBS", env.HAKONIWA_USE_LBBS, defaultConfig.useLbbs);
-  const unitTimeSec = parseInteger(
-    "HAKONIWA_UNIT_TIME_SEC",
-    env.HAKONIWA_UNIT_TIME_SEC,
-    defaultConfig.unitTimeSec,
-  );
   const maxCatchUpTurns = parseInteger(
     "HAKONIWA_MAX_CATCH_UP_TURNS",
     env.HAKONIWA_MAX_CATCH_UP_TURNS,
     defaultConfig.maxCatchUpTurns,
   );
-  if (unitTimeSec <= 0) {
-    throw new Error("loadConfigFromEnv: HAKONIWA_UNIT_TIME_SEC must be positive");
-  }
   if (maxCatchUpTurns <= 0) {
     throw new Error("loadConfigFromEnv: HAKONIWA_MAX_CATCH_UP_TURNS must be positive");
   }
@@ -209,33 +194,15 @@ export function loadConfigFromEnv(env: Record<string, string | undefined>): AppC
   const game: GameConfig = {
     ...defaultConfig,
     debug,
-    useLbbs,
-    unitTimeSec,
     maxCatchUpTurns,
-    site: {
-      // Cloudflare の wrangler.jsonc vars は key を省略できず空文字列を置くため、
-      // undefined だけでなく "" も「未設定」として defaultConfig にフォールバックする。
-      title: nonEmpty(env.HAKONIWA_SITE_TITLE) ?? defaultConfig.site.title,
-      adminName: nonEmpty(env.HAKONIWA_ADMIN_NAME) ?? defaultConfig.site.adminName,
-      email: nonEmpty(env.HAKONIWA_EMAIL) ?? defaultConfig.site.email,
-      bbsUrl: nonEmpty(env.HAKONIWA_BBS_URL) ?? defaultConfig.site.bbsUrl,
-      topPageUrl: nonEmpty(env.HAKONIWA_TOPPAGE_URL) ?? defaultConfig.site.topPageUrl,
-    },
   };
-
-  const timezone = nonEmpty(env.HAKONIWA_TIMEZONE) ?? "Asia/Tokyo";
-  const startAt = parseStartAt(env.HAKONIWA_START_AT);
-  const finalTurn = parseFinalTurnEnv(env.HAKONIWA_FINAL_TURN);
 
   return {
     game,
     auth: loadAuthConfig(env),
     mail: loadMailConfig(env),
-    ngWords: parseCsvList(env.HAKONIWA_NG_WORDS),
     adminEnabled,
     debug,
-    timezone,
-    ...(startAt !== undefined ? { startAt } : {}),
-    ...(finalTurn !== undefined ? { finalTurn } : {}),
+    siteDefaults: loadDeprecatedSiteDefaults(env),
   };
 }

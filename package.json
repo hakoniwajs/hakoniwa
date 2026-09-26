@@ -45,33 +45,6 @@
       },
       "HAKONIWA_RESEND_API_KEY": {
         "description": "メールログイン (マジックリンク) で実際にメールを送る場合に指定します ([Resend](https://resend.com/) の API キー)。任意。未設定の場合はログにリンクを出力するだけの開発用 Mailer になります。送信元アドレスは変数 `HAKONIWA_MAIL_FROM` で指定できます (既定値は `hakoniwa@example.com`)。"
-      },
-      "HAKONIWA_SITE_TITLE": {
-        "description": "サイトタイトル (ヘッダやページタイトルに表示)。任意 (既定値は `箱庭諸島２`)。"
-      },
-      "HAKONIWA_ADMIN_NAME": {
-        "description": "フッタに表示する管理者名。任意。未設定ならフッタに管理者名の行を表示しません。"
-      },
-      "HAKONIWA_EMAIL": {
-        "description": "フッタに表示する管理者の連絡先メールアドレス。任意。未設定ならフッタにメールアドレスを表示しません。"
-      },
-      "HAKONIWA_BBS_URL": {
-        "description": "フッタに表示する掲示板の URL。任意。未設定ならフッタに掲示板の行を表示しません。"
-      },
-      "HAKONIWA_TOPPAGE_URL": {
-        "description": "フッタに表示するトップページの URL。任意。未設定ならフッタにトップページの行を表示しません。"
-      },
-      "HAKONIWA_UNIT_TIME_SEC": {
-        "description": "新しいデータを作るときの1ターンの長さ (秒) の既定値。任意 (既定値は 21600 = 6時間)。管理画面の初期化フォームと CLI db init の既定値として使われるだけで、デプロイ後は管理画面の「ゲーム設定」または CLI game set-unit-time からいつでも変更できます (この値を変えても既存データには影響しません)。"
-      },
-      "HAKONIWA_START_AT": {
-        "description": "ターン1が始まる開始日時 (ISO 8601、例: 2026-10-01T21:00:00+09:00)。任意。管理画面の初期化フォームと CLI db init の既定値として使われるだけで、未設定なら初期化時の現在時刻を切り下げた時刻が使われます。"
-      },
-      "HAKONIWA_FINAL_TURN": {
-        "description": "最終ターン数 (正の整数)。任意。管理画面の初期化フォームと CLI db init の既定値として使われるだけで、未設定なら無期限になります。デプロイ後に管理画面の「ゲーム設定」からも変更できます。"
-      },
-      "HAKONIWA_TIMEZONE": {
-        "description": "日時の入力・表示に使うタイムゾーン (IANA タイムゾーン名)。任意 (既定値は Asia/Tokyo)。"
       }
     }
   }

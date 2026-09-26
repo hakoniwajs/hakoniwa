@@ -22,27 +22,11 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | `HAKONIWA_MAIL_FROM` | `hakoniwa@example.com` | メールの送信元アドレス | vars |
 | `HAKONIWA_DEV_LOGIN` | `false` | `true` で開発ログイン (任意のメールアドレスでログイン) を有効にします。**本番では必ず `false`** | vars |
 
-## サイトの表示
+## ゲームの動作
 
 | 環境変数 | 既定値 | 説明 |
 | --- | --- | --- |
-| `HAKONIWA_SITE_TITLE` | `箱庭諸島２` | サイトのタイトル |
-| `HAKONIWA_ADMIN_NAME` | なし | フッタに表示する管理者名。未設定なら表示しません |
-| `HAKONIWA_EMAIL` | なし | フッタに表示する連絡先。未設定なら表示しません |
-| `HAKONIWA_BBS_URL` | なし | フッタに表示する掲示板へのリンク。未設定なら表示しません |
-| `HAKONIWA_TOPPAGE_URL` | なし | フッタに表示するトップページへのリンク。未設定なら表示しません |
-| `HAKONIWA_TIMEZONE` | `Asia/Tokyo` | 日時の入力と表示に使うタイムゾーン (IANA タイムゾーン名) |
-
-## ゲーム
-
-| 環境変数 | 既定値 | 説明 |
-| --- | --- | --- |
-| `HAKONIWA_UNIT_TIME_SEC` | `21600` (6 時間) | 新しいゲームを開始するときの 1 ターンの長さ (秒) の既定値。開始後は管理画面や CLI で変更します |
-| `HAKONIWA_START_AT` | なし | 新しいゲームの開始日時 (ISO 8601) の既定値。未設定なら開始操作をした時刻を基準にします |
-| `HAKONIWA_FINAL_TURN` | なし | 新しいゲームの最終ターン数の既定値。未設定なら無期限 |
 | `HAKONIWA_MAX_CATCH_UP_TURNS` | Node.js 版は `1`、Cloudflare 版は `3` | 1 回の判定で進める最大ターン数 |
-| `HAKONIWA_USE_LBBS` | `false` | 島ごとのローカル掲示板を有効にします |
-| `HAKONIWA_NG_WORDS` | なし | 追加の NG ワード (カンマ区切り)。同梱のリストに加えて、島名・コメント・掲示板の投稿で拒否します |
 | `HAKONIWA_ADMIN_ENABLED` | `true` | 管理画面 (`/admin`) の有効・無効 |
 | `HAKONIWA_DEBUG` | `false` | `true` でトップページに「ターンを進める」ボタンを表示します (管理者のみ。開発用) |
 
@@ -52,6 +36,21 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | --- | --- | --- |
 | `HAKONIWA_SNAPSHOT_TTL_SEC` | `60` | [KV スナップショットキャッシュ](/setup/kv-cache) の短期 TTL (秒) |
 | `HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` | `2592000` (30 日) | KV スナップショットキャッシュの長期 TTL (秒) |
+
+## 管理画面に移した設定
+
+次の設定は、環境変数ではなく管理画面で変更します。
+
+| 設定 | 変更する場所 |
+| --- | --- |
+| サイトのタイトル、フッタの管理者名・連絡先・掲示板・トップページ | 管理画面の「サイト設定」 |
+| タイムゾーン、追加の NG ワード、島ごとのローカル掲示板 | 管理画面の「サイト設定」 |
+| 開始日時、最終ターン、1 ターンの長さ | 「新しいゲームを開始」のフォーム (CLI では `--start-at` / `--final-turn` / `--unit-time`)。開始後は「ゲーム設定」 |
+| 管理者 | 管理画面の「管理者」(または `HAKONIWA_ADMIN_EMAILS`) |
+
+:::note
+以前のバージョンで使っていた `HAKONIWA_SITE_TITLE`・`HAKONIWA_ADMIN_NAME`・`HAKONIWA_EMAIL`・`HAKONIWA_BBS_URL`・`HAKONIWA_TOPPAGE_URL`・`HAKONIWA_NG_WORDS`・`HAKONIWA_USE_LBBS`・`HAKONIWA_TIMEZONE` は非推奨です。設定したままでも、管理画面の「サイト設定」で保存するまでは初期値として使われます。`HAKONIWA_UNIT_TIME_SEC`・`HAKONIWA_START_AT`・`HAKONIWA_FINAL_TURN` は読まれなくなりました。
+:::
 
 ## Node.js 版のみ
 

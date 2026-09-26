@@ -4,7 +4,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultConfig } from "@hakoniwajs/core";
+import { defaultConfig, defaultSiteSettings } from "@hakoniwajs/core";
 import type { GameConfig } from "@hakoniwajs/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { composeNode } from "../src/compose.ts";
@@ -43,10 +43,9 @@ function setup(options: SetupOptions = {}): Ctx {
       adminEmails: options.adminEmails ?? [],
     },
     mail: { mailFrom: "hakoniwa@example.com" },
-    ngWords: [],
     adminEnabled: true,
     debug,
-    timezone: "Asia/Tokyo",
+    siteDefaults: defaultSiteSettings,
     port: 0,
     dbPath: ":memory:",
     backupDir,

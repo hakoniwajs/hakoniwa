@@ -1,7 +1,7 @@
 // tmp/17-ogp.md 「テスト」節: web 層 (`/islands/:id/ogp.png` と `/islands/:id` の OGP メタタグ)。
 // tmp/18-games.md 対応で `/games/:gameId/islands/:id/ogp.png` に移った。
 import { describe, expect, it } from "vitest";
-import { defaultConfig } from "../core/config.ts";
+import { defaultSiteSettings } from "../app/site-settings.ts";
 import { loginAs, postForm, setupTestApp } from "./test-helpers.ts";
 import type { TestApp } from "./test-helpers.ts";
 
@@ -92,7 +92,7 @@ describe("GET /games/:gameId/islands/:id の OGP メタタグ", () => {
 
     expect(html).toContain('<meta property="og:type" content="website"/>');
     expect(html).toContain(
-      `<meta property="og:title" content="てすとじま島 - ${defaultConfig.site.title}"/>`,
+      `<meta property="og:title" content="てすとじま島 - ${defaultSiteSettings.title}"/>`,
     );
     expect(html).toContain("ターン1 / 人口");
     expect(html).toContain(

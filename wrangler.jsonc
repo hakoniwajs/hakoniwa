@@ -57,26 +57,13 @@
     // HAKONIWA_BASE_URL は通常不要 (better-auth がリクエストから baseURL/trustedOrigins を
     // 推定する)。カスタムドメインや逆プロキシ配下で明示したい場合だけここに追加する:
     //   "HAKONIWA_BASE_URL": "https://hakoniwa.example.com",
-    // 新しいデータを作るときの1ターンの長さ (秒) の既定値。以後は管理画面「ゲーム設定」/
-    // CLI game set-unit-time で変更する (この値を変えても既存データには影響しない)。
-    "HAKONIWA_UNIT_TIME_SEC": "21600",
     // 管理者は、デプロイ後にログインして /admin/setup を開き、Workers のログに出力される
     // セットアップコードを入力すると登録できる (以後は管理画面の「管理者」節で追加・削除する)。
     // メールアドレスで固定したい場合は従来どおりここに追加してもよい (カンマ区切り):
     //   "HAKONIWA_ADMIN_EMAILS": "you@example.com",
-    // 開始時刻と最終ターン (シーズン)。空文字列なら「現在時刻を切り下げ」「無期限」が既定になる。
-    // 管理画面の初期化フォーム・CLI db init の既定値としても使われる。
-    "HAKONIWA_START_AT": "",
-    "HAKONIWA_FINAL_TURN": "",
-    // datetime-local の解釈と日時表示に使うタイムゾーン (IANA 名)。
-    "HAKONIWA_TIMEZONE": "Asia/Tokyo",
-    // サイト情報。adminName/email/bbsUrl/topPageUrl を空のままにすると、
-    // フッタの該当行は表示されない (game/src/web/views/layout.tsx 参照)。
-    "HAKONIWA_SITE_TITLE": "箱庭諸島２",
-    "HAKONIWA_ADMIN_NAME": "",
-    "HAKONIWA_EMAIL": "",
-    "HAKONIWA_BBS_URL": "",
-    "HAKONIWA_TOPPAGE_URL": "",
+    // サイトタイトル・フッタ情報・追加 NG ワード・ローカル掲示板・タイムゾーンは管理画面
+    // (`/admin`) の「サイト設定」で変更する (環境変数では設定しない)。1 ターンの長さ・開始時刻・
+    // 最終ターンは「新しいゲームを開始」フォーム / 「ゲーム設定」で指定する。
     // tmp/21-kv-snapshot-cache.md: KV スナップショットキャッシュの TTL (秒) は既定値
     // (60 / 2592000) で十分なので書いていない。変える場合だけ追加する:
     //   "HAKONIWA_SNAPSHOT_TTL_SEC": "60",

@@ -2,7 +2,14 @@
 // 1 インスタンス = ゲーム世界 1 つ。DO の SQLite ストレージに Node 版と同じスキーマを構築し、
 // @hakoniwajs/core の buildDeps で組み立てた Hono app にそのまま委譲する。
 import { DurableObject } from "cloudflare:workers";
-import { AppError, buildDeps, buildSeasonVM, loadConfigFromEnv, migrate } from "@hakoniwajs/core";
+import {
+  AppError,
+  buildDeps,
+  buildSeasonVM,
+  loadConfigFromEnv,
+  migrate,
+  toSiteRenderSettings,
+} from "@hakoniwajs/core";
 import type { AppConfig, BuiltDeps } from "@hakoniwajs/core";
 import { BookmarkBackupStore } from "./backup.ts";
 import { DurableObjectSqlDriver } from "./driver.ts";
@@ -54,6 +61,8 @@ export class HakoniwaGame extends DurableObject<Env> {
     const deps = this.#requireDeps();
     const { ttlSec, ttlImmutableSec } = loadSnapshotTtlConfig(this.env);
     const now = Math.floor(Date.now() / 1000);
+    // サイト設定は管理画面から変わるため、ページの TTL (過去のゲームは長期) とは別に常に短期 TTL。
+    const siteInfo = { site: toSiteRenderSettings(deps.siteSettings.get()), siteTtl: ttlSec };
     try {
       if (input.kind === "top") {
         const vm = deps.gameService.getTopPage(undefined, input.gameId);
@@ -67,7 +76,7 @@ export class HakoniwaGame extends DurableObject<Env> {
           ttlSec,
           ttlImmutableSec,
         });
-        return { kind: "top", vm, nextTurnAt, ttl };
+        return { kind: "top", vm, nextTurnAt, ttl, ...siteInfo };
       }
       const vm = deps.gameService.getIslandPage(input.gameId, input.islandId);
       // IslandPageVM には season が無いため、TTL 判定用に別途取得する
@@ -87,6 +96,7 @@ export class HakoniwaGame extends DurableObject<Env> {
         vm: toIslandPageSnapshotVM(vm),
         nextTurnAt: season.nextTurnAt,
         ttl,
+        ...siteInfo,
       };
     } catch (err) {
       if (err instanceof AppError) {
@@ -135,7 +145,8 @@ export function loadWorkerConfig(env: Env): AppConfig {
  * `env` (バインディングを含む) から、`loadConfigFromEnv` が読む文字列の環境変数だけを取り出す。
  * `GAME` (DurableObjectNamespace)・`SNAPSHOT` (KVNamespace) 等のバインディングは文字列では
  * ないため除外される。worker.ts も同じ `AppConfig` を組み立てるために export する
- * (tmp/21-kv-snapshot-cache.md: Worker 側レンダリングに `GameConfig`/timezone が要る)。
+ * (tmp/21-kv-snapshot-cache.md: Worker 側レンダリングに `GameConfig` が要る。サイト設定
+ * (タイトル・タイムゾーン等) は settings 表にあるため DO の `pageSnapshot` から受け取る)。
  */
 export function pickStringEnv(env: Env): Record<string, string | undefined> {
   const result: Record<string, string | undefined> = {};

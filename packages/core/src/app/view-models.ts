@@ -129,8 +129,8 @@ export interface IslandDetailVM {
 
 /** OGP 画像・メタタグ用の情報。tmp/17-ogp.md 「メタタグ」節。 */
 export interface IslandOgpVM {
-  /** og:title。「<島名>島 - <サイトタイトル>」。 */
-  title: string;
+  // og:title (「<島名>島 - <サイトタイトル>」) はサイトタイトルが管理画面から変わるため VM には
+  // 持たず、描画時に views/island.tsx の IslandOgpHead が組み立てる。
   /** og:description。「ターンN / 人口 X人・面積 Y万坪・順位 Z位」。 */
   description: string;
   /**
@@ -149,7 +149,6 @@ export function buildIslandOgpVM(
   config: GameConfig,
 ): IslandOgpVM {
   return {
-    title: `${detail.name}島 - ${config.site.title}`,
     description:
       `ターン${detail.turn} / 人口 ${detail.pop}${config.units.pop}・` +
       `面積 ${detail.area}${config.units.area}・順位 ${detail.rank}位`,

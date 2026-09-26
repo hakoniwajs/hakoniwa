@@ -8,7 +8,7 @@
 // baseUrl が未設定の場合はリクエスト URL のオリジン (`new URL(c.req.url).origin`) と比較する。
 import type { Context, MiddlewareHandler } from "hono";
 import { createCsrfToken, verifyCsrfToken } from "../../bootstrap/csrf.ts";
-import type { GameConfig } from "../../core/config.ts";
+import type { SiteSettingsReader } from "../../app/site-settings.ts";
 import type { AppEnv } from "../env.ts";
 import { Layout } from "../views/layout.tsx";
 import { ErrorPage } from "../views/messages.tsx";
@@ -17,7 +17,8 @@ export interface CsrfMiddlewareDeps {
   secret: string;
   /** 未設定ならリクエスト URL のオリジンと比較する (HAKONIWA_BASE_URL 省略可能化)。 */
   baseUrl?: string;
-  gameConfig: GameConfig;
+  /** 403 画面の Layout (タイトル・フッタ) 用。 */
+  siteSettings: SiteSettingsReader;
 }
 
 /** `_csrf` を要求しない自前ルート (セッション確立前の POST)。 */
@@ -37,7 +38,7 @@ function originMismatch(originHeader: string | undefined, expectedHost: string):
 
 function forbidden(c: Context<AppEnv>, deps: CsrfMiddlewareDeps) {
   return c.html(
-    <Layout config={deps.gameConfig} user={c.get("user")} csrfToken={c.get("csrfToken")}>
+    <Layout site={deps.siteSettings.get()} user={c.get("user")} csrfToken={c.get("csrfToken")}>
       <ErrorPage message="不正なリクエストです。" />
     </Layout>,
     403,

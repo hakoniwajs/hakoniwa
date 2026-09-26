@@ -52,7 +52,7 @@ function wordBoundaryRegExp(word: string): RegExp {
  *
  * - 日本語リスト (`ja`) の語: 正規化後の部分一致。
  * - 英語リスト (`en`) の語: 正規化後の ASCII 単語境界一致。
- * - `extra` (HAKONIWA_NG_WORDS 由来): 部分一致。
+ * - `extra` (サイト設定の追加 NG ワード): 部分一致。
  *
  * 一致した語自体はログ用途を想定し、呼び出し側 (GameService) は利用者にこの語を見せない。
  */

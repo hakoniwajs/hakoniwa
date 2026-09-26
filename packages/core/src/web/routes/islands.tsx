@@ -69,12 +69,18 @@ export function createIslandsRoutes(deps: WebDeps): Hono<AppEnv> {
     const id = parseIdParam(c);
     const vm = deps.gameService.getIslandPage(gameId, id);
     const origin = resolveOrigin(deps, c.req.url);
+    const site = deps.siteSettings.get();
     return renderPage(
       c,
       deps,
-      <IslandPage vm={vm} config={deps.config.game} csrfToken={c.get("csrfToken")} />,
+      <IslandPage
+        vm={vm}
+        config={deps.config.game}
+        useLbbs={site.useLbbs}
+        csrfToken={c.get("csrfToken")}
+      />,
       undefined,
-      <IslandOgpHead vm={vm} origin={origin} />,
+      <IslandOgpHead vm={vm} origin={origin} siteTitle={site.title} />,
     );
   });
 
@@ -111,7 +117,8 @@ export function createIslandsRoutes(deps: WebDeps): Hono<AppEnv> {
           config={deps.config.game}
           targets={targets}
           csrfToken={c.get("csrfToken") ?? ""}
-          timezone={deps.config.timezone}
+          timezone={deps.siteSettings.get().timezone}
+          useLbbs={deps.siteSettings.get().useLbbs}
           notice={result.notice}
         />,
       );
@@ -122,6 +129,7 @@ export function createIslandsRoutes(deps: WebDeps): Hono<AppEnv> {
       <IslandPage
         vm={result}
         config={deps.config.game}
+        useLbbs={deps.siteSettings.get().useLbbs}
         csrfToken={c.get("csrfToken")}
         notice={result.notice}
       />,

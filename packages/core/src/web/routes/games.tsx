@@ -15,7 +15,11 @@ export function createGamesRoutes(deps: WebDeps): Hono<AppEnv> {
     return renderPage(
       c,
       deps,
-      <GamesPage games={games} currentGameId={currentGameId} timezone={deps.config.timezone} />,
+      <GamesPage
+        games={games}
+        currentGameId={currentGameId}
+        timezone={deps.siteSettings.get().timezone}
+      />,
     );
   });
 

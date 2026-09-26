@@ -16,7 +16,7 @@ export function renderPage(
 ) {
   return c.html(
     <Layout
-      config={deps.config.game}
+      site={deps.siteSettings.get()}
       user={c.get("user")}
       csrfToken={c.get("csrfToken")}
       extraHead={extraHead}

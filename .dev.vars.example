@@ -10,7 +10,7 @@
 #   `wrangler secret put <NAME>` で追加してください。
 # - ローカルの `wrangler dev` で使う場合は .dev.vars にコピーし、必要な行のコメントを外してください
 #   (.dev.vars は git 管理外)。
-# 非秘密の設定 (HAKONIWA_UNIT_TIME_SEC など) は wrangler.jsonc の vars にあります。
+# サイトタイトルやフッタ情報などは管理画面 (/admin) の「サイト設定」で変更します (環境変数は不要です)。
 # Node 版の開発用の例は .env.node.example を参照してください。
 
 # better-auth の secret と CSRF トークンの鍵。任意 (未設定なら自動生成して保存します)。
