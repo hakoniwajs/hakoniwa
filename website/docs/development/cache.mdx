@@ -85,6 +85,7 @@ HakoniwaGame (DO)
 
 - 署名 (HMAC-SHA256)・Cookie キャッシュの有効期限・セッション自体の有効期限の検証は、better-auth 自身の `getCookieCache` に任せます。Cookie 名も better-auth の `getCookies` で求めます (`authCookieNames`)
 - Cookie キャッシュの中のセッショントークンが、セッショントークンの Cookie (`hako.session_token`) と一致することも確かめます。一致しなければ DO 側の better-auth は DB を引くため、エッジと DO で別のセッションになりうるからです
+- better-auth の Cookie が同じ名前で複数ある場合などは、検証もキャッシュもしません (Gateway の better-auth の `parseCookies` は同じ名前を後勝ち、DO の better-auth が使う better-call は先勝ちで読むため、エッジと DO で別の値を読まないようにします)
 - 署名の鍵 (auth secret) は、`HAKONIWA_AUTH_SECRET` があればそれ、無ければ DO の RPC (`HakoniwaGame.authSecret()`) で取得し、isolate 内で 10 分間メモ化します
 - 検証できない場合 (Cookie キャッシュが無い・期限切れ・期限まで 10 秒未満・改ざん・secret を取得できない) は、**キャッシュを使わずに DO へ直接転送** します
 - Cookie キャッシュの有効期間は 5 分 (`SESSION_COOKIE_CACHE_MAX_AGE_SEC`) です。期限が切れた後の最初のリクエストは DO へ直接転送され、DO が DB のセッションを確かめて Cookie キャッシュを作り直します (session ミドルウェアが GET/HEAD の応答に better-auth の Set-Cookie を付けます)

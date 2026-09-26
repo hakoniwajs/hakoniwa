@@ -150,6 +150,32 @@ export function revSetCookie(rev: string, secure: boolean): string {
   return `${REV_COOKIE}=${rev}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
+/**
+ * better-auth の Cookie があいまいか (同じ名前が複数ある、または `hako.session_data` と分割した
+ * `hako.session_data.0` などが両方ある)。Cookie の解析は、Gateway で使う better-auth の
+ * parseCookies (同じ名前は後勝ち) と、DO の better-auth が使う better-call (先勝ち) で扱いが
+ * 違うため、エッジと DO で別の値を読むことが無いよう、あいまいなら検証もキャッシュもしない。
+ */
+export function hasAmbiguousAuthCookies(request: Request): boolean {
+  const names = cookieNames(request.headers.get("cookie")).filter((name) =>
+    AUTH_COOKIE_NAME.test(name),
+  );
+  const seen = new Set<string>();
+  for (const name of names) {
+    if (seen.has(name)) {
+      return true;
+    }
+    seen.add(name);
+  }
+  for (const name of seen) {
+    const chunk = /^(.*)\.[0-9]+$/.exec(name);
+    if (chunk?.[1] !== undefined && seen.has(chunk[1])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** better-auth の Cookie だけを残した Cookie ヘッダ (ログイン中のページを DO に描画させるため)。 */
 function authCookieHeader(request: Request): string {
   return cookiePairs(request.headers.get("cookie"))
@@ -185,7 +211,11 @@ export function needsSessionVerification(request: Request): boolean {
     return false;
   }
   const { pathname } = new URL(request.url);
-  return SESSION_PAGE_PATHS.some((pattern) => pattern.test(pathname)) && hasAuthCookie(request);
+  return (
+    SESSION_PAGE_PATHS.some((pattern) => pattern.test(pathname)) &&
+    hasAuthCookie(request) &&
+    !hasAmbiguousAuthCookies(request)
+  );
 }
 
 /** Gateway がエッジで検証したセッション (`@hakoniwajs/core` の verifySessionCookieCache の結果)。 */
@@ -262,7 +292,8 @@ export function planGatewayRequest(
     session === undefined ||
     session.sessionId === "" ||
     session.expiresAt - now < SESSION_EXPIRY_MARGIN_MS ||
-    !SESSION_PAGE_PATHS.some((pattern) => pattern.test(url.pathname))
+    !SESSION_PAGE_PATHS.some((pattern) => pattern.test(url.pathname)) ||
+    hasAmbiguousAuthCookies(request)
   ) {
     return { kind: "direct" };
   }

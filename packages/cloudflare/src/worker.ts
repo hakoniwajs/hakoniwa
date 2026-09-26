@@ -171,11 +171,14 @@ export function createWorker(options: CreateWorkerOptions = {}): HakoniwaWorker 
   const resolved = resolveGameStubOptions(options);
   return {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+      const cachedPages = cachedPagesOf(ctx);
+      if (cachedPages === undefined) {
+        return toDirectResponse(await getGame(env, resolved).fetch(request));
+      }
       const now = Date.now();
       const session = await verifySession(request, env, resolved, now);
       const plan = planGatewayRequest(request, { session, now });
-      const cachedPages = cachedPagesOf(ctx);
-      if (plan.kind === "cached" && cachedPages !== undefined) {
+      if (plan.kind === "cached") {
         const response = await cachedPages({ props: plan.props }).fetch(plan.url, {
           method: plan.method,
           headers: plan.headers,

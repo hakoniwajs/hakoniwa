@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cookieNames,
+  hasAmbiguousAuthCookies,
   hasAuthCookie,
   needsSessionVerification,
   planGatewayRequest,
@@ -230,6 +231,24 @@ describe("planGatewayRequest (ログイン中のページ)", () => {
     for (const path of ["/admin", "/account", "/login", "/auth/x", "/api/auth/get-session", "/"]) {
       expect(planGatewayRequest(get(path), { session, now: NOW }).kind, path).toBe("direct");
     }
+  });
+
+  it("better-auth の Cookie があいまい (重複・分割と非分割の混在) なら検証もキャッシュもしない", () => {
+    for (const ambiguous of [
+      `${cookie}; hako.session_token=other.sig`,
+      `${cookie}; hako.session_data.0=part`,
+    ]) {
+      const request = get("/games/1", { cookie: ambiguous });
+      expect(hasAmbiguousAuthCookies(request)).toBe(true);
+      expect(needsSessionVerification(request)).toBe(false);
+      expect(planGatewayRequest(request, { session, now: NOW }).kind).toBe("direct");
+    }
+    expect(hasAmbiguousAuthCookies(get("/games/1"))).toBe(false);
+    expect(
+      hasAmbiguousAuthCookies(
+        get("/games/1", { cookie: "hako.session_data.0=a; hako.session_data.1=b" }),
+      ),
+    ).toBe(false);
   });
 
   it("別のセッションなら props が違う (キャッシュを共有しない)", () => {
