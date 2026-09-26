@@ -132,12 +132,15 @@ jobs:
           TAG: ${{ steps.resolve.outputs.tag }}
         run: |
           set -euo pipefail
-          VERSION="${TAG#v}"
+          # 下の node -e が process.env.VERSION として読むため export する
+          # (export しないと package.json に "undefined" が書き込まれる)
+          export VERSION="${TAG#v}"
           # dependencies/devDependencies の @hakoniwajs/* を新バージョンに更新
           node -e '
             const fs = require("fs");
             const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
             const v = process.env.VERSION;
+            if (!v) throw new Error("VERSION is not set");
             for (const section of ["dependencies", "devDependencies"]) {
               for (const name of Object.keys(pkg[section] ?? {})) {
                 if (name.startsWith("@hakoniwajs/")) {
