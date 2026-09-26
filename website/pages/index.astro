@@ -1,0 +1,407 @@
+---
+// ドキュメントサイトのトップページ。サイドバーや目次の無い独立したランディングページにするため、
+// Markdown ではなく Blume のカスタムページ (PageLayout) で書いている。
+import PageLayout from "blume/components/layout/PageLayout.astro";
+import data from "blume:data";
+
+const { config } = data;
+
+// deployment.base (/hakoniwa) を付けたパスを返す。
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const href = (path: string) => `${base}${path}`;
+
+const deployUrl =
+  "https://deploy.workers.cloudflare.com/?url=https://github.com/hakoniwajs/template-cloudflare";
+
+// 地図のタイル。画像は packages/core/public/images から website/public/images にコピーしたもの。
+const tiles: Record<string, [string, string]> = {
+  ".": ["land0", "海"],
+  s: ["land14", "海(浅瀬)"],
+  w: ["land1", "荒地"],
+  p: ["land2", "平地"],
+  v: ["land3", "村"],
+  t: ["land4", "町"],
+  c: ["land5", "都市"],
+  f: ["land6", "森"],
+  a: ["land7", "農場"],
+  k: ["land8", "工場"],
+  b: ["land10", "防衛施設"],
+  m: ["land11", "山"],
+  o: ["land16", "海底油田"],
+  M: ["monster0", "怪獣いのら"],
+};
+
+const islandMap = [
+  "............",
+  "....ssss....",
+  "..ssfmmfss..",
+  ".sfvtaapfs..",
+  ".spcckavws..",
+  "..sftcfabs.o",
+  ".sspptfps...",
+  "...sffMs....",
+  "....sss.....",
+  "............",
+];
+
+const steps = [
+  {
+    title: "Deploy to Cloudflare を押す",
+    body: "GitHub と Cloudflare のアカウントで連携すると、テンプレートがコピーされてそのままデプロイされます。入力が必要な項目はありません。",
+  },
+  {
+    title: "ログインして管理者になる",
+    body: "公開された URL でログインし、/admin/setup で Worker のログに出力されるセットアップコードを入力します。",
+  },
+  {
+    title: "ゲームを開始する",
+    body: "管理画面の「新しいゲームを開始」を押せば、あとは一定時間ごとにターンが自動で進みます。",
+  },
+];
+
+const features = [
+  {
+    title: "オリジナルのルールを再現",
+    body: "箱庭諸島 ver2.3 のルール (計画・災害・怪獣・記念碑・賞など) を移植。画像もオリジナルのものを同梱しています。",
+  },
+  {
+    title: "サーバー管理が不要",
+    body: "Cloudflare Workers と Durable Objects (SQLite) で動くので、サーバーもデータベースも用意する必要がありません。",
+  },
+  {
+    title: "パスワード不要のログイン",
+    body: "X (Twitter)・Discord・メール (マジックリンク) でログイン。1 つのアカウントに複数の方法を連携できます。",
+  },
+  {
+    title: "シーズン制と過去のゲーム",
+    body: "開始日時・最終ターン・1 ターンの長さを設定できます。終わったゲームは結果発表として残り、次のゲームを始められます。",
+  },
+  {
+    title: "シェアしたくなる OGP 画像",
+    body: "島のページを SNS でシェアすると、その島の地図を描いた画像がプレビューに表示されます。",
+  },
+  {
+    title: "Node.js でも動く",
+    body: "ゲームロジックはランタイムから独立。npx hakoniwa serve で、自前のサーバーでも同じゲームを動かせます。",
+  },
+];
+
+const methods = [
+  {
+    title: "Cloudflare (ワンクリック)",
+    path: "/setup/cloudflare",
+    body: "まずはこれ。ボタンを押すだけで設置できます。",
+    recommended: true,
+  },
+  {
+    title: "Cloudflare (手動)",
+    path: "/setup/cloudflare-manual",
+    body: "Wrangler で、設定をコードで管理しながらデプロイします。",
+  },
+  {
+    title: "Node.js",
+    path: "/setup/node",
+    body: "VPS や自宅サーバーで npx hakoniwa serve を動かします。",
+  },
+];
+---
+
+<PageLayout
+  site={{ title: config.title, description: config.description }}
+  logo={config.logo}
+  banner={config.banner}
+  analytics={config.analytics}
+  navigation={data.navigation}
+  favicon={config.favicon}
+  fontCssVars={data.fontCssVars}
+  themeMode={config.theme.mode}
+  searchEnabled={config.search.enabled}
+  siteUrl={config.site}
+  ogEnabled={config.og.enabled}
+  structuredDataEnabled={config.structuredData}
+  locale="ja"
+  ui={data.ui}
+  page={{ title: config.title, description: config.description }}
+>
+  <div class="home">
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">Web ブラウザゲーム「箱庭諸島２」の TypeScript 版</p>
+        <h1>自分だけの箱庭諸島を、<br />ボタンひとつで。</h1>
+        <p class="lead">
+          島を発見し、開発計画を立て、ほかの島と競い合う——あの「箱庭諸島２」を TypeScript
+          で書き直しました。Cloudflare のアカウントさえあれば、サーバーを用意しなくても設置できます。
+        </p>
+        <div class="actions">
+          <a href={deployUrl} class="deploy">
+            <img
+              src="https://deploy.workers.cloudflare.com/button"
+              alt="Deploy to Cloudflare"
+              height="32"
+            />
+          </a>
+          <a href={href("/setup/cloudflare")} class="button primary">設置ガイドを読む</a>
+          <a href={href("/play")} class="button">遊び方</a>
+        </div>
+      </div>
+      <div class="map-wrap">
+        <div
+          class="map"
+          role="img"
+          aria-label="箱庭諸島２の島の地図の例。海に囲まれた島に、森・山・農場・工場・町・都市が並んでいる"
+        >
+          {
+            islandMap.map((row, y) => (
+              <div class:list={["map-row", y % 2 === 0 ? "even" : "odd"]}>
+                {[...row].map((ch) => {
+                  const [image, name] = tiles[ch] ?? tiles["."];
+                  return (
+                    <img src={href(`/images/${image}.gif`)} alt="" title={name} width="32" height="32" />
+                  );
+                })}
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>3 ステップで設置</h2>
+      <p class="section-lead">
+        かつては Perl が動くレンタルサーバーを借り、CGI のパーミッションを設定し……という手間がかかりました。TypeScript
+        版なら、ゲーム本体・データベース・ターン進行がまとめて自分の Cloudflare アカウントに用意されます。
+      </p>
+      <ol class="steps">
+        {
+          steps.map((step, i) => (
+            <li>
+              <span class="step-number">{i + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="note">Workers の無料プランの範囲でも、仲間内で遊ぶ規模なら十分に動かせます。</p>
+    </section>
+
+    <section class="section">
+      <h2>特徴</h2>
+      <div class="grid">
+        {
+          features.map((feature) => (
+            <div class="card">
+              <h3>{feature.title}</h3>
+              <p>{feature.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>設置方法を選ぶ</h2>
+      <div class="grid three">
+        {
+          methods.map((method) => (
+            <a href={href(method.path)} class="card link-card">
+              <h3>
+                {method.title}
+                {method.recommended && <span class="badge">おすすめ</span>}
+              </h3>
+              <p>{method.body}</p>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    <footer class="home-footer">
+      <p>
+        <a href="https://github.com/hakoniwajs/hakoniwa">GitHub</a> ・
+        <a href="https://www.npmjs.com/package/@hakoniwajs/cloudflare">npm</a> ・
+        <a href={href("/credits")}>クレジットとライセンス</a>
+      </p>
+      <p>
+        原作「箱庭諸島２」: 徳岡宏樹 (字)・小川克人 (絵)。同梱の画像は小川克人氏の著作物で、商用利用はできません。
+      </p>
+    </footer>
+  </div>
+</PageLayout>
+
+<style>
+  .home {
+    --tile: min(32px, calc((100vw - 2rem) / 12.5));
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 3rem 1rem 2rem;
+    color: var(--blume-foreground);
+  }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3rem;
+    align-items: center;
+  }
+  .eyebrow {
+    color: var(--blume-accent);
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+  }
+  h1 {
+    font-family: var(--blume-font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    line-height: 1.2;
+    margin: 0;
+  }
+  .lead {
+    color: var(--blume-muted-foreground);
+    font-size: 1.125rem;
+    line-height: 1.8;
+    margin: 1.25rem 0 1.75rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .deploy img {
+    display: block;
+  }
+  .button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--blume-border);
+    border-radius: var(--blume-radius);
+    color: var(--blume-foreground);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .button.primary {
+    background: var(--blume-accent);
+    border-color: var(--blume-accent);
+    color: var(--blume-accent-foreground);
+  }
+  .map {
+    line-height: 0;
+    border: 1px solid var(--blume-border);
+    background: #1e5aa8;
+  }
+  .map-row {
+    white-space: nowrap;
+  }
+  .map-row.even {
+    padding-left: calc(var(--tile) / 2);
+  }
+  .map-row.odd {
+    padding-right: calc(var(--tile) / 2);
+  }
+  .map img {
+    display: inline-block;
+    width: var(--tile);
+    height: var(--tile);
+    image-rendering: pixelated;
+  }
+  .section {
+    margin-top: 5rem;
+  }
+  h2 {
+    font-family: var(--blume-font-display);
+    font-size: 1.75rem;
+    margin: 0 0 1rem;
+  }
+  h3 {
+    font-size: 1.05rem;
+    margin: 0 0 0.5rem;
+  }
+  .section-lead,
+  .note {
+    color: var(--blume-muted-foreground);
+    line-height: 1.8;
+  }
+  .steps {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .steps li,
+  .card {
+    border: 1px solid var(--blume-border);
+    border-radius: var(--blume-radius);
+    padding: 1.25rem;
+  }
+  .steps p,
+  .card p {
+    color: var(--blume-muted-foreground);
+    line-height: 1.7;
+    margin: 0;
+  }
+  .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    background: var(--blume-accent);
+    color: var(--blume-accent-foreground);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .grid.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .link-card {
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s;
+  }
+  .link-card:hover {
+    border-color: var(--blume-accent);
+  }
+  .badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--blume-accent);
+    color: var(--blume-accent-foreground);
+    vertical-align: middle;
+  }
+  .home-footer {
+    margin-top: 5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--blume-border);
+    color: var(--blume-muted-foreground);
+    font-size: 0.875rem;
+  }
+  .home-footer a {
+    color: inherit;
+  }
+  @media (max-width: 860px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+    }
+    .map-wrap {
+      display: flex;
+      justify-content: center;
+    }
+    .steps,
+    .grid,
+    .grid.three {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
