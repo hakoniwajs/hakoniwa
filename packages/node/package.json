@@ -1,6 +1,6 @@
 {
   "name": "@hakoniwajs/node",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "箱庭諸島２ (TypeScript 版) の Node.js アダプタ。`hakoniwa serve` で node:sqlite をストレージにした HTTP サーバーが起動する",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
