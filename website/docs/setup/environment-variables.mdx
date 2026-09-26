@@ -30,13 +30,6 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | `HAKONIWA_ADMIN_ENABLED` | `true` | 管理画面 (`/admin`) の有効・無効 |
 | `HAKONIWA_DEBUG` | `false` | `true` でトップページに「ターンを進める」ボタンを表示します (管理者のみ。開発用) |
 
-## Cloudflare 版のみ
-
-| 環境変数 | 既定値 | 説明 |
-| --- | --- | --- |
-| `HAKONIWA_SNAPSHOT_TTL_SEC` | `60` | [KV スナップショットキャッシュ](/setup/kv-cache) の短期 TTL (秒) |
-| `HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` | `2592000` (30 日) | KV スナップショットキャッシュの長期 TTL (秒) |
-
 ## 管理画面に移した設定
 
 次の設定は、環境変数ではなく管理画面で変更します。
@@ -49,7 +42,7 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | 管理者 | 管理画面の「管理者」(または `HAKONIWA_ADMIN_EMAILS`) |
 
 :::note
-以前のバージョンで使っていた `HAKONIWA_SITE_TITLE`・`HAKONIWA_ADMIN_NAME`・`HAKONIWA_EMAIL`・`HAKONIWA_BBS_URL`・`HAKONIWA_TOPPAGE_URL`・`HAKONIWA_NG_WORDS`・`HAKONIWA_USE_LBBS`・`HAKONIWA_TIMEZONE` は非推奨です。設定したままでも、管理画面の「サイト設定」で保存するまでは初期値として使われます。`HAKONIWA_UNIT_TIME_SEC`・`HAKONIWA_START_AT`・`HAKONIWA_FINAL_TURN` は読まれなくなりました。
+以前のバージョンで使っていた `HAKONIWA_SITE_TITLE`・`HAKONIWA_ADMIN_NAME`・`HAKONIWA_EMAIL`・`HAKONIWA_BBS_URL`・`HAKONIWA_TOPPAGE_URL`・`HAKONIWA_NG_WORDS`・`HAKONIWA_USE_LBBS`・`HAKONIWA_TIMEZONE` は非推奨です。設定したままでも、管理画面の「サイト設定」で保存するまでは初期値として使われます。`HAKONIWA_UNIT_TIME_SEC`・`HAKONIWA_START_AT`・`HAKONIWA_FINAL_TURN` は読まれなくなりました。Cloudflare 版の `HAKONIWA_SNAPSHOT_TTL_SEC`・`HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` (KV キャッシュの TTL) も、KV キャッシュを廃止したため使われません。
 :::
 
 ## Node.js 版のみ
@@ -62,4 +55,4 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | `HAKONIWA_TURN_CHECK_INTERVAL_SEC` | `60` | ターン進行を確認する間隔 (秒)。`0` で無効 |
 | `HAKONIWA_PUBLIC_DIR` | `@hakoniwajs/core` の `public/` | 画像や CSS を配信するディレクトリ |
 
-コード上の定義は `packages/core/src/bootstrap/config-from-env.ts` (共通)、`packages/node/src/config.ts` (Node.js 版)、`packages/cloudflare/src/snapshot.ts` (KV キャッシュ) にあります。
+コード上の定義は `packages/core/src/bootstrap/config-from-env.ts` (共通)、`packages/node/src/config.ts` (Node.js 版) にあります。

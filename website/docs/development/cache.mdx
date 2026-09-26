@@ -1,6 +1,6 @@
 ---
 title: キャッシュの仕組み
-description: Workers Cache のエントリポイント構成と既定の no-store 方針、画像の長期キャッシュ、KV スナップショットキャッシュの実装を説明します。
+description: Workers Cache のエントリポイント構成と既定の no-store 方針、未ログインのページのキャッシュ、画像の長期キャッシュを説明します。
 sidebar:
   label: キャッシュの仕組み
 ---
@@ -38,7 +38,7 @@ HakoniwaGame (DO)
 - Gateway は `CachedPages` の応答のうち画像以外を `Cache-Control: private, no-store` に書き換えてからブラウザへ返します (エッジのキャッシュ用に `public` にしていても、ブラウザには HTML をキャッシュさせないため)
 - 利用側のエントリが `CachedPages` を再エクスポートしていない (`ctx.exports.CachedPages` が無い) 場合は、キャッシュを使わずに DO へ直接転送します
 
-現在 `CachedPages` 経由にしているのは OGP 画像 (`/games/:gameId/islands/:id/ogp.png`) だけです。誰が見ても同じ画像なので `props` は `{ v: 1, viewer: "anonymous" }` の固定値にし、クエリは `turn` だけを残します。
+`CachedPages` 経由にしているのは、OGP 画像と未ログインのページ (後述) です。OGP 画像は誰が見ても同じ画像なので `props` は `{ v: 1, viewer: "anonymous" }` の固定値にし、クエリは `turn` だけを残します。Gateway は動作確認用に `X-Hakoniwa-Route: cached | direct` (`CachedPages` 経由か、DO へ直接転送したか) を付けます。
 
 `GET /games/:gameId/islands/:id/ogp.png` は、画像の変わりやすさに応じて `Cache-Control` を出し分けます (`routes/islands.tsx` の `ogpCacheControl`)。
 
@@ -54,13 +54,25 @@ HakoniwaGame (DO)
 
 `packages/core/public/images/` の地形タイル画像やロゴは、内容の変わらない固定名のファイルです。`packages/core/public/_headers` で `/images/*` だけ `Cache-Control: public, max-age=31536000, immutable` にしています。**画像を差し替える場合はファイル名を変えてください。**
 
-## KV スナップショットキャッシュ
+## 未ログインのページのキャッシュ
 
-未ログインの `GET /games/:gameId` (トップ) と `GET /games/:gameId/islands/:id` (観光) は、DO への往復を省くため、ページの View Model (`TopPageVM`/`IslandPageVM` の JSON。HTML そのものではない) を Workers KV (`env.SNAPSHOT`) に TTL 付きで保存し、Worker 側でレンダリングして応答します。HTML はキャッシュしないため、「次のターンまであと N 分」のような表示はリクエスト時刻で再計算されます。
+未ログインの GET の `/games` (ゲーム一覧)・`/games/:gameId` (トップ)・`/games/:gameId/islands/:id` (観光) は、DO が描画した **HTML をそのまま** Workers Cache にキャッシュします。
 
-- **対象外は Gateway の通常の経路へ**: ログイン中 (Cookie に `hako` を含む)、POST、`/`、`/games`、開発画面、管理画面などは `HakoniwaGame` (DO) に転送します (OGP 画像は上記のとおり `CachedPages` 経由)
-- **`env.SNAPSHOT` は省略可能**: 未バインドなら常に DO へ転送します
-- **レンダリングは Worker 側**: `@hakoniwajs/core` の `renderTopPageHtml`/`renderIslandPageHtml` (`packages/core/src/web/render-snapshot.tsx`) が、DO 側と同じ JSX を `user`/`csrfToken` を `undefined` にして描画します。出力が DO 側と一致することを `packages/cloudflare/test/snapshot-cache.test.ts` で確認しています
-- **DO 側の RPC**: `HakoniwaGame.pageSnapshot({ kind, gameId, islandId? })` が `{ kind, vm, nextTurnAt, ttl }` を返します。`vm` の `terrain` は RPC 越しにメソッドを渡せないため `number[][]` にして受け渡し、Worker 側で `terrainFromJSON` により復元します
-- **TTL は DO 側で決める**: キーにターン数は含めず (`v1:<gameId>:top` / `v1:<gameId>:island:<islandId>`)、invalidate もせずにすべて TTL に任せます。TTL の決め方は [KV スナップショットキャッシュ](/setup/kv-cache#ttl) を参照してください
-- **応答ヘッダ**: HTML なので `Cache-Control` は `private, no-store` のままです。動作確認用に `X-Hakoniwa-Snapshot: hit | miss | bypass` を付けます
+- **未ログインの判定**: better-auth の Cookie (`hako.` または `__Secure-hako.` で始まる名前) を 1 つも持たないリクエストだけを対象にします。Cookie を持つリクエストは (ログイン中のページを誤って未ログインのキャッシュから返さないよう) DO へ直接転送します
+- **`props`**: `{ v: 1, viewer: "anonymous", origin }`。`origin` はリクエストのオリジンです。観光ページの OGP メタタグの絶対 URL にオリジンを使うため (`HAKONIWA_BASE_URL` 未設定時)、Host を含まないキャッシュキーを補います
+- **DO に渡すリクエスト**: クエリはすべて落とし、Cookie などのヘッダも渡しません。DO は必ず未ログインとして描画します
+- **キャッシュ期間は DO が決める**: `@hakoniwajs/core` の `web/cache-hint.ts` が、ページの応答に内部ヘッダ `X-Hakoniwa-Cache-Control` (期間) と `X-Hakoniwa-Cache-Tag` (タグ) を付けます (`buildDeps({ cacheHints: true })` の場合だけ。Node.js 版は付けません)。`CachedPages` が 200 の応答に限って `Cache-Control: public, <期間>` と `Cache-Tag` に変換し、内部ヘッダは消します。ブラウザへ返す `Cache-Control` は `private, no-store` のままです
+
+| ページの状態 | キャッシュ期間 |
+| --- | --- |
+| 過去のゲーム | `max-age=86400` (ゲームの内容は変わらないが、サイト設定は変わりうるため 1 日) |
+| 進行中のゲーム | 次のターンまでの秒数 (上限 60 秒) + `stale-while-revalidate=60`。予定時刻を過ぎていればキャッシュしない |
+| ゲーム開始前 | ゲーム開始までの秒数 (上限 60 秒) + `stale-while-revalidate=60` |
+| 終了済みのゲーム (現在のゲーム) | `max-age=60, stale-while-revalidate=60` (記帳が入りうるため) |
+| ゲーム一覧 | `max-age=60, stale-while-revalidate=60` |
+
+タグは `game-<gameId>`・`island-<gameId>-<islandId>`・`games` です。
+
+キャッシュした HTML の表示が古くならないよう、「次のターンまであと N 分」のような **リクエスト時刻に依存する表示は HTML に埋め込みません**。トップページの残り時間は、予定時刻 (unix 秒) を `data-remaining-until` 属性に置き、`packages/core/public/remaining.js` がブラウザの現在時刻で計算して表示します (表記は `app/format.ts` の `formatRemaining` と同じ)。JavaScript が無効な場合は、予定時刻 (絶対時刻) だけが表示されます。
+
+以前のバージョンの KV スナップショットキャッシュ (`SNAPSHOT` バインディング、`HAKONIWA_SNAPSHOT_TTL_*`) は廃止しました。既存のデプロイに設定が残っていても無視されます。

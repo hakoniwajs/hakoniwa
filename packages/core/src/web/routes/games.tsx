@@ -2,6 +2,7 @@
 import { Hono } from "hono";
 import type { WebDeps } from "../deps.ts";
 import type { AppEnv } from "../env.ts";
+import { GAMES_LIST_CACHE_TAG, gamesListCacheDirectives, setCacheHint } from "../cache-hint.ts";
 import { renderPage } from "./render.tsx";
 import { GamesPage } from "../views/games.tsx";
 
@@ -12,6 +13,7 @@ export function createGamesRoutes(deps: WebDeps): Hono<AppEnv> {
   app.get("/games", (c) => {
     const games = deps.gameService.listGames();
     const currentGameId = deps.gameService.getCurrentGameId();
+    setCacheHint(c, deps, gamesListCacheDirectives(), [GAMES_LIST_CACHE_TAG]);
     return renderPage(
       c,
       deps,

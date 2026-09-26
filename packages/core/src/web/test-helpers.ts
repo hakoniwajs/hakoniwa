@@ -152,6 +152,8 @@ export interface SetupOptions {
    * (既存テストの挙動どおり)。X / Discord ログインボタンの表示を確認するテスト用に上書きできる。
    */
   authMethodsConfigured?: Partial<AuthMethodsFlags>;
+  /** `WebDeps.cacheHints` (エッジのキャッシュの目安のヘッダ)。省略時は false (Node 版と同じ)。 */
+  cacheHints?: boolean;
 }
 
 export interface TestApp {
@@ -242,6 +244,7 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
     clock,
     auth: auth as unknown as WebDeps["auth"],
     logger,
+    cacheHints: options.cacheHints ?? false,
   };
   const app = createApp(deps);
 

@@ -37,7 +37,7 @@ describe("GET /games/:gameId/islands/:id/ogp.png", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("image/png");
     expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
-    expect(res.headers.get("cache-tag")).toBe("island-1");
+    expect(res.headers.get("cache-tag")).toBe("game-1,island-1-1");
 
     const bytes = new Uint8Array(await res.arrayBuffer());
     expect([...bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);

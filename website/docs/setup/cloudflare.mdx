@@ -79,6 +79,14 @@ Worker の設定 (環境変数と secret) は、Cloudflare ダッシュボード
 
 新しいバージョンの `@hakoniwajs/cloudflare` が公開されたら、コピーしたリポジトリの `package.json` の依存バージョンを上げて push してください。Workers Builds が再デプロイします。データベースのスキーマは起動時に自動でマイグレーションされます。
 
-## 表示を速くする (任意)
+:::note
+キャッシュ用のエントリポイント `CachedPages` を追加したバージョンからは、`src/worker.ts` で `CachedPages` も再エクスポートし (`export { CachedPages, HakoniwaGame } from "@hakoniwajs/cloudflare";`)、`wrangler.jsonc` に `exports` を追加すると、ページのキャッシュが有効になります (設定例は [テンプレートリポジトリ](https://github.com/hakoniwajs/template-cloudflare) と [Cloudflare に手動でデプロイする](/setup/cloudflare-manual) を参照)。追加しなくても、キャッシュを使わずにこれまでどおり動作します。
+:::
 
-未ログインのトップページや観光ページを Workers KV にキャッシュして、表示を速くできます。設定しなくても動作に問題はありません。[KV スナップショットキャッシュ](/setup/kv-cache) を参照してください。
+## 表示の速さ (キャッシュ)
+
+未ログインのトップページ・観光ページ・ゲーム一覧は、Cloudflare の [Workers Cache](https://developers.cloudflare.com/workers/cache/) に自動でキャッシュされます。追加の設定は不要です。仕組みは [キャッシュの仕組み](/development/cache) を参照してください。
+
+:::note
+以前のバージョンで KV 名前空間 (`SNAPSHOT`) を設定していた場合は、`wrangler.jsonc` の `kv_namespaces` と環境変数 `HAKONIWA_SNAPSHOT_TTL_SEC`・`HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` を削除して構いません (残っていても使われません)。KV 名前空間自体も `npx wrangler kv namespace delete` で削除できます。
+:::

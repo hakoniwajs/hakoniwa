@@ -31,6 +31,11 @@ export interface BuildDepsInput {
   logger?: Logger;
   /** テスト用に注入可能。省略時は `config.mail` から `ConsoleMailer`/`ResendMailer` を組み立てる。 */
   mailer?: Mailer;
+  /**
+   * true なら、エッジでキャッシュしてよいページの応答に目安のヘッダを付ける
+   * (`WebDeps.cacheHints`。Cloudflare 版の DO が指定する)。省略時は false。
+   */
+  cacheHints?: boolean;
 }
 
 export interface BuiltDeps {
@@ -163,6 +168,7 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     clock,
     auth,
     logger,
+    cacheHints: input.cacheHints ?? false,
   };
   const app = createApp(webDeps);
 

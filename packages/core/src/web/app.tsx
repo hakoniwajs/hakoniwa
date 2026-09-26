@@ -36,7 +36,7 @@ const defaultCacheControlMiddleware: MiddlewareHandler<AppEnv> = async (c, next)
   }
 };
 
-/** ランタイム非依存の Hono app を組み立てる。静的配信 (`/images/*`, `/style.css`, `/owner.js`) は Adapter の責務。 */
+/** ランタイム非依存の Hono app を組み立てる。静的配信 (`/images/*`, `/style.css`, `/owner.js`, `/remaining.js`) は Adapter の責務。 */
 export function createApp(deps: WebDeps): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 

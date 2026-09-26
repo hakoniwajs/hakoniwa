@@ -6,12 +6,8 @@ export interface Env {
   /** durable_objects.bindings (wrangler.jsonc)。世界は 1 つなので getByName('main') で固定して使う。 */
   GAME: DurableObjectNamespace<HakoniwaGame>;
 
-  /**
-   * tmp/21-kv-snapshot-cache.md: 未ログイン GET のトップ/観光ページの View Model を保存する
-   * Workers KV 名前空間 (`kv_namespaces` の binding 名 `SNAPSHOT`)。**省略可能**。
-   * 未バインドなら worker.ts は常に DO へ転送する (Node 版・既存デプロイ・テストへの影響が無い)。
-   */
-  SNAPSHOT?: KVNamespace;
+  // 既存のデプロイの wrangler.jsonc に残っている `kv_namespaces` (binding 名 `SNAPSHOT`) や
+  // `HAKONIWA_SNAPSHOT_TTL_*` は使わない (設定が残っていても無視する)。
 
   // 以下は vars (wrangler.jsonc) または `wrangler secret put` で設定する。
   // すべて loadConfigFromEnv (@hakoniwajs/core) がそのまま読む文字列環境変数。
@@ -37,12 +33,4 @@ export interface Env {
   // 既定値として loadConfigFromEnv がそのまま読む (非推奨。pickStringEnv が文字列の env を
   // すべて渡すため、ここに型を書かなくても読まれる)。
   // HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT / HAKONIWA_FINAL_TURN は読まない。
-
-  // tmp/21-kv-snapshot-cache.md: KV スナップショットの TTL (秒)。SNAPSHOT が未バインドなら
-  // 無視される。`snapshot.ts` の `loadSnapshotTtlConfig` が読む (Workers KV の最小 TTL 60 秒
-  // 未満を指定した場合は 60 に切り上げる)。
-  /** 進行中/開始前のゲーム、または現在のゲームの終了済み島ページの TTL。既定 60。 */
-  HAKONIWA_SNAPSHOT_TTL_SEC?: string;
-  /** 過去のゲーム、または現在のゲームの終了済みトップページの TTL (不変なので長期)。既定 2592000 (30日)。 */
-  HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC?: string;
 }

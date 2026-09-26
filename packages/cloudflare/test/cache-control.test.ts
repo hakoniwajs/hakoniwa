@@ -76,7 +76,7 @@ describe("Cache-Control (Workers Cache が従う応答ヘッダ)", () => {
     expect(ogpCacheControl).toMatch(/^public, max-age=\d+$/);
     expect(ogpMaxAge).toBeGreaterThanOrEqual(60);
     expect(ogpMaxAge).toBeLessThanOrEqual(3600);
-    expect(ogpRes.headers.get("cache-tag")).toBe("island-1");
+    expect(ogpRes.headers.get("cache-tag")).toBe("game-1,island-1-1");
 
     // 旧 URL (ゲーム ID を含まない) は現在のゲームへ 302 で転送される。
     const legacyOgpRes = await stub.fetch("http://example.com/islands/1/ogp.png", {
