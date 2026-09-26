@@ -18,8 +18,8 @@ export interface LayoutProps {
 
 const SCRIPT_SOURCE_URL = "http://www.bekkoame.ne.jp/~tokuoka/hakoniwa.html";
 const REPOSITORY_URL = "https://github.com/hakoniwajs/hakoniwa";
-/** 箱庭諸島の遊び方 (オリジナル版の解説ページ)。コーディネーターの追加指示によりフッタと
- * トップの「新しい島を探す」節にリンクする。 */
+/** 箱庭諸島の遊び方 (オリジナル版の解説ページ)。フッタとトップの「新しい島を探す」節から
+ * リンクする。 */
 export const MANUAL_URL = "https://hako2d-mj.xii.jp/pin/st/manual/man01.html";
 
 /** `http://` `https://` から始まる文字列だけリンクにする (それ以外はそのまま文字列で表示)。 */
@@ -42,7 +42,7 @@ function Footer({ site }: { site: SiteInfo }) {
   return (
     <p class="footer">
       {/* tmp/18-games.md「ルート」節: 現在のゲームが無くても表示する。「ナビの並び順」節:
-          ナビには置かず、フッタの先頭行に移した。 */}
+          ナビには置かず、フッタの先頭行に置く。 */}
       <a href="/games" class="footer-games">
         過去のゲーム
       </a>
@@ -95,7 +95,7 @@ function Footer({ site }: { site: SiteInfo }) {
  * 「ナビの並び順」節: 利用頻度順に並べる。ログイン中は 自分の島 → アカウント設定 →
  * 管理 (管理者のみ) の順で並べ、ユーザー名とログアウトは `.nav-user` にまとめて
  * `margin-left: auto` で右端に寄せる。未ログインは ログインのみ。「過去のゲーム」は
- * 利用頻度が低いためナビには置かず、フッタ先頭行に移した (Footer 参照)。
+ * 利用頻度が低いためナビには置かず、フッタ先頭行に置く (Footer 参照)。
  */
 function Nav({
   site,

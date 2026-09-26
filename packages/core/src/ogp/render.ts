@@ -78,8 +78,7 @@ export function blitTile(
 /**
  * 島の地図を敷き詰めた OGP 画像 (PNG) を生成する。tmp/17-ogp.md 「画像仕様」節。
  *
- * 設計書は `renderIslandOgp(island, turn)` としており GameConfig を渡さない。tileFor は
- * GameConfig を要求するが、visitor モードでの image (画像名) 選択には config の値は影響しない
+ * tileFor は GameConfig を要求するが、visitor モードでの image (画像名) 選択には config の値は影響しない
  * (config は説明文 (alt) にのみ使われる。core/tile.ts のコメント参照) ため、ここでは
  * defaultConfig を渡す。
  */

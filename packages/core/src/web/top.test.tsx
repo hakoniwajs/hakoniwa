@@ -53,7 +53,7 @@ describe("GET /games/:gameId (トップ)", () => {
     expect(html).toContain("最近の出来事");
     expect(html).toContain("発見の記録");
     expect(html).toContain("ログイン");
-    // コーディネーターの追加指示: 未ログインでもログイン誘導の近くに遊び方リンクを出す。
+    // 未ログインでもログイン誘導の近くに遊び方リンクを出す。
     expect(html).toContain("箱庭諸島の遊び方");
   });
 
@@ -75,7 +75,7 @@ describe("GET /games/:gameId (トップ)", () => {
     expect(html).toContain("新しい島を探す");
     expect(html).toContain('action="/games/1/islands"');
     expect(html).not.toContain('action="/my-island"');
-    // コーディネーターの追加指示: 遊び方リンクをフォームの上に表示する。
+    // 遊び方リンクをフォームの上に表示する。
     expect(html).toContain("箱庭諸島の遊び方");
   });
 
@@ -191,7 +191,7 @@ describe("フッタ", () => {
     expect(html).not.toContain("トップページ(");
     expect(html).toContain("箱庭諸島のページ(");
     expect(html).toContain('TypeScript版配布(<a href="https://github.com/hakoniwajs/hakoniwa">');
-    // コーディネーターの追加指示: 遊び方 (外部サイト) へのリンク。
+    // 遊び方 (外部サイト) へのリンク。
     expect(html).toContain("遊び方(");
     expect(html).toContain('href="https://hako2d-mj.xii.jp/pin/st/manual/man01.html"');
   });

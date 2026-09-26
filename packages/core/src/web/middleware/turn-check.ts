@@ -11,7 +11,7 @@ export interface TurnCheckDeps {
 /**
  * ゲーム系ルートの前に `advanceTurnIfDue` を同期実行する。`/admin/*` と静的には掛けない。
  *
- * 設計書との差異: repo が未初期化のとき `TurnService.advanceTurnIfDue` (内部で `repo.getMeta()`
+ * repo が未初期化のとき `TurnService.advanceTurnIfDue` (内部で `repo.getMeta()`
  * を呼ぶ) は通常の `Error` を throw する (`AppError('not_initialized')` ではない)。
  * ここで catch せずに投げっぱなしにすると `app.onError` の想定外エラー分岐 (500) に落ちてしまい、
  * 06 の表が定める `not_initialized` (503) にたどり着けない。

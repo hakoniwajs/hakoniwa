@@ -78,9 +78,8 @@ describe("AdminService.initialize", () => {
     expect(meta.lastTime).toBe(defaultConfig.unitTimeSec * 3);
   });
 
-  // tmp/18-games.md「CLI」節: db init は「ゲームが無いときだけ game new」になった。
-  // 旧実装は毎回 reset してから作り直していたが、新実装ではゲームが 1 つでもあれば
-  // (running/finished を問わず) 失敗する。
+  // tmp/18-games.md「CLI」節: db init は「ゲームが無いときだけ game new」。ゲームが 1 つでも
+  // あれば (running/finished を問わず) 失敗する。
   it("既にゲームがあれば (running でも finished でも) AppError('game_running') で失敗する", () => {
     const { repo, admin } = setup();
     admin.initialize(0);

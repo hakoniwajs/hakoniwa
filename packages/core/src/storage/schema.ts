@@ -1,13 +1,11 @@
 // tmp/04-database.md 「スキーマ」節 + tmp/14-users-auth.md 「データモデル」節 (v2) +
 // tmp/18-games.md 「データ (スキーマ v5)」節の DDL。
-// 設計書との差異: 設計書は `packages/core/schema.sql` を正としてここへ文字列として埋め込む
-// 想定だが、schema.sql (人が読むためのコピー) と schema.ts (実際に読まれる文字列) の二重管理を
-// 避けるため、schema.sql は置かず本ファイルのみを正とする (Vite の `?raw` import は
-// Workers/テストで扱いが揺れるため使わない、という設計書の指示に従った結果の選択)。
+// schema.sql と schema.ts の二重管理を避けるため、DDL は本ファイルの文字列だけを正とする
+// (Vite の `?raw` import は Workers/テストで扱いが揺れるため使わない)。
 //
 // better-auth の "user"/session/account/verification の列は node_modules/better-auth
 // (実体は @better-auth/core) の getAuthTables (get-tables.ts) の既定スキーマと照合した実際の
-// 列に合わせている。14 の DDL との差異は下記コメントを参照。
+// 列に合わせている (下記コメントを参照)。
 
 /**
  * このファイルが適用するスキーマのバージョン。v1 (パスワード認証) からの自動移行は提供しない。
@@ -102,10 +100,9 @@ CREATE INDEX abandonments_game_user ON abandonments(game_id, user_id);
 -- 外部キーは張らない (DO の PRAGMA 制限を避け、削除はリポジトリが明示的に行う)
 -- v2: user_id (投稿者の better-auth "user".id) を追加。
 -- v5: game_id を追加し、主キーを (game_id, island_id, position) に変更。
--- 設計書 (04/18) は "ALTER TABLE ... ADD COLUMN game_id DEFAULT 1" のみを指示しているが、
 -- island_id はゲームごとに 1 から再採番されるため、旧主キー (island_id, position) のままでは
--- 別のゲームの同じ island_id の投稿と衝突する。実際に動く形にするため、islands と同様
--- 新表作成 → INSERT SELECT → DROP → RENAME で主キーに game_id を含めている (設計書との差異)。
+-- 別のゲームの同じ island_id の投稿と衝突する。そのため "ALTER TABLE ... ADD COLUMN" ではなく、
+-- islands と同様に新表作成 → INSERT SELECT → DROP → RENAME で主キーに game_id を含めている。
 CREATE TABLE lbbs_posts (
   game_id     INTEGER NOT NULL DEFAULT 1,
   island_id   INTEGER NOT NULL,
@@ -155,12 +152,9 @@ CREATE TABLE backups (
 -- ここから better-auth が所有する表。列名は better-auth の既定 (camelCase) のまま。
 -- storage/better-auth-adapter.ts が読み書きする。
 --
--- 設計書 (14) との差異: 14 の DDL は account に "issuer" 列と
--- UNIQUE INDEX account_issuer_accountId(issuer, accountId) を挙げているが、
--- better-auth 1.7.5 (@better-auth/core の getAuthTables) の既定スキーマに
--- issuer 列は存在しない (account は accountId/providerId の組で識別する)。
--- 実装は node_modules 内の get-tables.ts で確認した実際の列に合わせ、
--- issuer は追加せず、代わりに (provider_id, account_id) の UNIQUE INDEX を張る。
+-- better-auth 1.7.5 (@better-auth/core の getAuthTables) の既定スキーマに issuer 列は
+-- 存在しない (account は accountId/providerId の組で識別する)。node_modules 内の
+-- get-tables.ts で確認した実際の列に合わせ、(provider_id, account_id) の UNIQUE INDEX を張る。
 CREATE TABLE "user" (
   id            TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -211,7 +205,7 @@ CREATE TABLE verification (
 ) STRICT;
 CREATE INDEX verification_identifier ON verification(identifier);
 
--- アプリ側: 計画登録フォームの初期値 (v1 の hako_defaults Cookie の置き換え)。ゲームに依らない。
+-- アプリ側: 計画登録フォームの初期値。ゲームに依らない。
 CREATE TABLE user_prefs (
   user_id TEXT NOT NULL PRIMARY KEY,
   prefs   TEXT NOT NULL

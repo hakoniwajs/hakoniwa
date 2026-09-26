@@ -1,15 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hakoniwa",
-  // 設計書との差異: Deploy to Cloudflare ボタンはサブディレクトリ単位のデプロイを
-  // サポートしない (依存が閉じている必要があるが packages/cloudflare は
+  // wrangler.jsonc をリポジトリ直下に置いている理由: Deploy to Cloudflare ボタンは
+  // サブディレクトリ単位のデプロイをサポートしない (依存が閉じている必要があるが packages/cloudflare は
   // workspace 依存の @hakoniwajs/core を参照するため使えない)。そのため wrangler.jsonc を
   // リポジトリ直下に置き、リポジトリ全体を 1 つのデプロイ単位にする
   // (tmp/12-workers-adapter.md 末尾「Deploy to Cloudflare ボタン」節)。
   "main": "packages/cloudflare/src/worker.ts",
-  // 設計書との差異: tmp/12-workers-adapter.md は現在日付近辺を挙げているが、
   // @cloudflare/vitest-pool-workers 0.22.0 が同梱する miniflare (workerd) の対応上限が
-  // 2026-08-22 だったため、テストが通る日付に合わせている (wrangler dev 側はより新しい
+  // 2026-08-22 のため、テストが通る日付に合わせている (wrangler dev 側はより新しい
   // workerd を使うため問題なく動く。テストと dev で workerd のバージョンが揃うよう、
   // 依存更新時にこの日付も見直すこと)。
   "compatibility_date": "2026-08-22",
@@ -59,7 +58,7 @@
     //   "HAKONIWA_BASE_URL": "https://hakoniwa.example.com",
     // 管理者は、デプロイ後にログインして /admin/setup を開き、Workers のログに出力される
     // セットアップコードを入力すると登録できる (以後は管理画面の「管理者」節で追加・削除する)。
-    // メールアドレスで固定したい場合は従来どおりここに追加してもよい (カンマ区切り):
+    // メールアドレスで固定したい場合はここに追加してもよい (カンマ区切り):
     //   "HAKONIWA_ADMIN_EMAILS": "you@example.com",
     // サイトタイトル・フッタ情報・追加 NG ワード・ローカル掲示板・タイムゾーンは管理画面
     // (`/admin`) の「サイト設定」で変更する (環境変数では設定しない)。1 ターンの長さ・開始時刻・

@@ -181,7 +181,7 @@ function AdminEmailsSection({
 
 /**
  * サイト設定 (タイトル・フッタ・追加 NG ワード・ローカル掲示板・タイムゾーン)。
- * 以前は環境変数で設定していたもの。保存すると settings 表に入り、すぐに反映される。
+ * 保存すると settings 表に入り、すぐに反映される。
  */
 function SiteSettingsForm({
   siteSettings,

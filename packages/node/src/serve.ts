@@ -22,10 +22,8 @@ import type { NodeConfig } from "./config.ts";
  * 4. `dist/` だけを配置するデプロイ向けに、`vite.config.ts` の `publicDir` でビルド時に
  *    `dist/server.js` と同じディレクトリへ直接コピーされる (Vite の既定動作: `publicDir` の中身は
  *    `outDir` サブディレクトリではなくルート直下に展開される) ため、スクリプトと同じディレクトリに
- *    フォールバックする。
- *    設計書 (tmp/09-tooling.md) は `dist/public` へコピーされる前提だが、実際に `vp build` した
- *    結果は `dist/images/*` `dist/style.css` `dist/owner.js` (dist 直下) だったため、実挙動に合わせた
- *    (設計書との差異)。
+ *    フォールバックする (`vp build` の結果は `dist/public` ではなく `dist/images/*`
+ *    `dist/style.css` `dist/owner.js` のように dist 直下に置かれる)。
  */
 function resolvePublicDir(): string {
   const fromEnv = process.env.HAKONIWA_PUBLIC_DIR;

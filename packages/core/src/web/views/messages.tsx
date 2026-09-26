@@ -51,8 +51,8 @@ export function errorMessage(kind: AppErrorKind): string {
       return "問題発生、とりあえず戻ってください。";
     case "invalid_input":
       return "入力内容が不正です。";
-    // 設計書との差異: login_required/forbidden/already_has_island/no_island/ng_word は
-    // 06 の表にない (14/15 の認可ルール・NG ワード対応で追加した AppError.kind)。
+    // login_required/forbidden/already_has_island/no_island/ng_word は認可ルール・NG ワード対応の
+    // AppError.kind (tmp/14, tmp/15)。
     case "login_required":
       return "ログインが必要です。";
     case "forbidden":
@@ -108,8 +108,7 @@ export function errorStatus(kind: AppErrorKind): 400 | 401 | 403 | 404 | 409 | 5
     case "forbidden":
     case "no_island":
       return 403;
-    // 設計書との差異: tmp/14-users-auth.md には無いが、Phase 6b の指示により
-    // 「島はひとり1つまでです。」は 409 (island_full と同じ「もう作れない」系の意味) にした。
+    // 「島はひとり1つまでです。」は 409 (island_full と同じ「もう作れない」系の意味)。
     case "already_has_island":
       return 409;
     // tmp/16-season.md「ターン進行」節。

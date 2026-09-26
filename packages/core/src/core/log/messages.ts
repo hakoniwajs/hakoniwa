@@ -768,9 +768,8 @@ export function logGiveupNotice(log: LogCollector, id: number, name: string): vo
 
 /**
  * 放棄の記録 (history のみ)。tmp/19-abandon.md「ユースケース」節: `GameService.abandonIsland`
- * は放棄した時点で history にこの文言を追記する。tmp/19-abandon.md「ターン処理」節への
- * コーディネーターの修正指示により、ターン末の除去時は通常ログ (`logGiveupNotice`) だけを出し、
- * history はここ (放棄した時点) の1回だけにする (二重記録の解消)。
+ * は放棄した時点で history にこの文言を追記する。ターン末の除去時は通常ログ
+ * (`logGiveupNotice`) だけを出し、history はここ (放棄した時点) の1回だけにする (二重記録の防止)。
  */
 export function logGiveupHistory(log: LogCollector, name: string): void {
   log.history(`${markup.islandName(name)}、放棄され${markup.b("無人島")}となる。`);

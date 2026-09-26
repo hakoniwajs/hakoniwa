@@ -54,7 +54,7 @@ export class HakoniwaGame extends DurableObject<Env> {
   /**
    * tmp/21-kv-snapshot-cache.md: 未ログイン GET のトップ/観光ページ用の RPC。worker.ts が
    * KV キャッシュを外した (ミスした) ときに呼ぶ。対象のゲーム/島が無ければ `undefined` を返し、
-   * 呼び出し側は従来どおり `fetch` (DO への HTTP 転送) にフォールバックする。
+   * 呼び出し側は `fetch` (DO への HTTP 転送) にフォールバックする。
    * TTL はここ (DO 側) で決める (Worker 側に「不変かどうか」の判定を持たせないため)。
    */
   pageSnapshot(input: PageSnapshotRequest): PageSnapshotResult | undefined {
@@ -121,8 +121,8 @@ export class HakoniwaGame extends DurableObject<Env> {
 /**
  * Workers 版の `HAKONIWA_MAX_CATCH_UP_TURNS` の既定値。Cron Trigger (15 分ごと) やリクエスト時の
  * 追いつき処理で 1 回に進めるターン数の上限。core の既定値 (1) より大きくし、DO が長く
- * 眠っていた場合でも少ない呼び出しで追いつけるようにする (以前は wrangler.jsonc の vars に
- * "3" を書いていたが、Deploy to Cloudflare の入力項目を減らすためコード側の既定値にした)。
+ * 眠っていた場合でも少ない呼び出しで追いつけるようにする (Deploy to Cloudflare の入力項目を
+ * 減らすため、wrangler.jsonc の vars ではなくコード側の既定値にしている)。
  */
 export const WORKERS_DEFAULT_MAX_CATCH_UP_TURNS = 3;
 

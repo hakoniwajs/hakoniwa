@@ -16,8 +16,7 @@ function user(id: string, name = `user-${id}`): AuthUser {
 }
 
 /**
- * `repo.createGame` でゲームを作り (既にゲームがあれば流用)、gameId も返す
- * (旧 `repo.initialize({...})` の代わり)。`skipInit` のときはゲームを作らず、
+ * `repo.createGame` でゲームを作り (既にゲームがあれば流用)、gameId も返す。`skipInit` のときはゲームを作らず、
  * `gameId` はダミー値 (1) を返す (not_initialized のテストで使う)。
  */
 /** `setup` の上書き。`site` はサイト設定 (追加 NG ワード・ローカル掲示板等) の一部を上書きする。 */
@@ -615,7 +614,7 @@ describe("GameService.getTopPage / getIslandPage", () => {
       `ターン${page.turn} / 人口 ${page.pop}${defaultConfig.units.pop}・` +
         `面積 ${page.area}${defaultConfig.units.area}・順位 ${page.rank}位`,
     );
-    // tmp/18-games.md: OGP の imagePath はゲーム ID 入りの URL になった。
+    // tmp/18-games.md: OGP の imagePath はゲーム ID 入りの URL。
     expect(page.ogp.imagePath).toBe(
       `/games/${gameId}/islands/${created.id}/ogp.png?turn=${page.turn}`,
     );
@@ -811,8 +810,7 @@ describe("GameService.abandonIsland", () => {
   });
 });
 
-// tmp/16-season.md「開始前の状態 (追加要件)」節。コーディネーターの追加指示により、
-// 計画登録も開始前に許可する (開始前に登録した計画はターン1終了時に実行される)。
+// tmp/16-season.md「開始前の状態 (追加要件)」節。計画登録も開始前に許可する (開始前に登録した計画はターン1終了時に実行される)。
 describe("GameService 開始前", () => {
   /** startAt を clock.now() より未来にして「開始前」状態を作る。 */
   function setupBeforeStart() {

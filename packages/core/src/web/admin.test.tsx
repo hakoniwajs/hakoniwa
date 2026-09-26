@@ -438,7 +438,7 @@ describe("tmp/16-season.md: 管理画面の開始時刻・最終ターン", () =
     expect(meta.lastTime).toBe(meta.startAt);
   });
 
-  it("POST /admin/games: start-at/final-turn を省略すると従来どおり (現在時刻の切り下げ・無期限)", async () => {
+  it("POST /admin/games: start-at/final-turn を省略すると現在時刻の切り下げ・無期限になる", async () => {
     const testApp = setupTestApp({ adminEmails: [ADMIN_EMAIL], skipInit: true });
     const admin = await loginAdmin(testApp);
     const res = await postForm(

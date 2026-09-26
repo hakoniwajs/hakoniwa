@@ -1,7 +1,6 @@
 // tmp/17-ogp.md 「テスト」節: png.ts の PNG シグネチャ・チャンク構成・CRC・画素を検証する。
-// 設計書は Node 側 `node:zlib` の inflateSync を挙げているが、packages/core は node:* を
-// import できない (root vite.config.ts の lint 制約) ため、設計書が併記するもう一つの方法
-// (`DecompressionStream` で検証) を使う。
+// packages/core は node:* を import できない (root vite.config.ts の lint 制約) ため、
+// `node:zlib` ではなく `DecompressionStream` で展開して検証する。
 import { describe, expect, it } from "vitest";
 import { encodePng } from "./png.ts";
 

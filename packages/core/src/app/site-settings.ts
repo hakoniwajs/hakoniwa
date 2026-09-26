@@ -1,7 +1,6 @@
 // サイト設定 (サイトタイトル・フッタ情報・追加 NG ワード・ローカル掲示板・タイムゾーン)。
-// 以前は環境変数 (HAKONIWA_SITE_TITLE 等) から起動時に読み込む静的な設定だったが、
-// セットアップを簡単にするため管理画面 (`/admin` の「サイト設定」) から変更できるようにし、
-// settings 表に保存する。値の優先順位は「settings 表 > 環境変数 (非推奨) > コードの既定値」で、
+// セットアップを簡単にするため、環境変数ではなく管理画面 (`/admin` の「サイト設定」) から
+// 変更でき、settings 表に保存する。値の優先順位は「settings 表 > 環境変数 (非推奨) > コードの既定値」で、
 // settings 表の値の解決はここ (SiteSettingsService) にまとめる。auth-methods.ts と同じく
 // settings 表の値は JSON で持つ。
 import type { SettingsRepository } from "./ports.ts";

@@ -41,7 +41,7 @@ export interface OilConfig {
 }
 
 // サイト情報 (タイトル・フッタ)・ローカル掲示板の有無・タイムゾーン・追加 NG ワードは
-// 管理画面から変更できるサイト設定 (app/site-settings.ts) に移した。
+// ここではなく、管理画面から変更できるサイト設定 (app/site-settings.ts) で扱う。
 export interface GameConfig {
   // 進行
   /**

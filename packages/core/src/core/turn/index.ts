@@ -126,7 +126,7 @@ export function runTurn(world: World, ctx: TurnContext): TurnResult {
       // 放棄島: ターン末の死滅判定で除去する (pop === 0)。除去時のログは logDead ではなく
       // 通常ログ「放棄され、無人島になりました」(logGiveupNotice)。history は
       // GameService.abandonIsland が放棄した時点で既に1回記録しているため、ここでは
-      // 出さない (二重記録防止。コーディネーターの修正指示)。
+      // 出さない (二重記録防止)。
       const state = getState(ctx, island.id);
       state.dead = true;
       island.pop = 0;

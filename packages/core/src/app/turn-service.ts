@@ -17,7 +17,7 @@ export interface TurnServiceDeps {
 
 // tmp/16-season.md「開始前の状態 = ターン 0 (改訂 2026-09-20)」節「進行判定」:
 // turn===0 (開始前) は `now >= startAt` で期限到来とみなす (lastTime は見ない)。
-// turn>=1 は従来どおり `now - lastTime >= unitTimeSec`。
+// turn>=1 は `now - lastTime >= unitTimeSec`。
 // tmp/16-season.md「ターンの長さも DB に持つ」節: 期限判定は config ではなく
 // meta.unitTimeSec (管理画面「ゲーム設定」/ CLI `game set-unit-time` で変更された値) を使う。
 function isDue(meta: GameMeta, now: number): boolean {
@@ -34,9 +34,8 @@ function mayManuallyAdvance(meta: GameMeta, now: number): boolean {
  * tmp/18-games.md「TurnService」節: 現在のゲーム (`repo.getCurrentGameId()`) だけを対象にする。
  * ゲームが無い、または現在のゲームが `running` でなければ何もしない。
  *
- * 設計書との差異: 08 はバックアップ作成を `advanceTurnIfDue` の同期フロー内に書いているが、
  * `BackupStore` は非同期 (04-database.md) であり、同期関数の中で await することはできない。
- * そのため、ターン処理のトランザクションが確定した後に
+ * そのため、バックアップ作成はターン処理のトランザクションが確定した後に
  * `void backupStore.create(...).then(() => backupStore.rotate(...)).catch(logger.error)` の形で
  * fire-and-forget 呼び出しにしている。呼び出し元はバックアップの完了を待たない。
  */
@@ -120,7 +119,7 @@ export class TurnService {
         turn: meta.turn + 1,
         // tmp/16-season.md「開始前の状態 = ターン 0」節「進行判定」: turn===0 (開始前) の
         // 処理では lastTime を startAt に据え置く (以降の期限は startAt + k * unitTimeSec)。
-        // turn>=1 は従来どおり unitTimeSec を加算する。
+        // turn>=1 は unitTimeSec を加算する。
         lastTime: meta.turn === 0 ? meta.startAt : meta.lastTime + meta.unitTimeSec,
       };
       if (!repo.tryBumpTurn(gameId, meta.turn, next)) {

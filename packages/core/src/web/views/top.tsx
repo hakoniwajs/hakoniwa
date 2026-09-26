@@ -12,8 +12,7 @@ import { HistoryList, LogList } from "./logs.tsx";
 import { Notice } from "./messages.tsx";
 
 /**
- * 遊び方 (外部サイト) への案内。「新しい島を探す」節の直下、フォームの上に表示する
- * (コーディネーターの追加指示)。
+ * 遊び方 (外部サイト) への案内。「新しい島を探す」節の直下、フォームの上に表示する。
  */
 function ManualGuide() {
   return (

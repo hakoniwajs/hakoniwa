@@ -4,7 +4,7 @@
 // このミドルウェアより前で処理が終わるため、ここでは対象にならない
 // (better-auth 自身は trustedOrigins で Origin を検証する)。
 // 加えて Origin ヘッダがあれば HAKONIWA_BASE_URL のオリジンと比較する (除外ルートも含む)。
-// 設計書との差異: HAKONIWA_BASE_URL 省略可能化 (tmp/12「Deploy to Cloudflare ボタン」節) に伴い、
+// HAKONIWA_BASE_URL は省略可能 (tmp/12「Deploy to Cloudflare ボタン」節) なので、
 // baseUrl が未設定の場合はリクエスト URL のオリジン (`new URL(c.req.url).origin`) と比較する。
 import type { Context, MiddlewareHandler } from "hono";
 import { createCsrfToken, verifyCsrfToken } from "../../bootstrap/csrf.ts";

@@ -38,7 +38,7 @@ export interface AdminStatus {
 export interface StartGameOptions {
   /** 省略時は `第 ${newId} 回`。tmp/18-games.md。 */
   name?: string;
-  /** 省略時は従来どおり `now` を `unitTimeSec` で切り下げる。 */
+  /** 省略時は `now` を `unitTimeSec` で切り下げる。 */
   startAt?: number;
   /** 省略時 (または未指定) は無期限 (null)。 */
   finalTurn?: number | null;
@@ -74,10 +74,9 @@ export interface AdminServiceDeps {
 }
 
 /**
- * 設計書との差異: 08 の擬似コードは `status`/`listBackups`/`createBackup`/`restoreBackup`/
- * `deleteBackup` を同期シグネチャで示しているが、`BackupStore` (04-database.md) は
- * VACUUM INTO やブックマーク操作のため非同期である。ここでは実際に動く形として、
- * バックアップに触れるメソッドはすべて `Promise` を返す非同期メソッドにしている。
+ * `BackupStore` は VACUUM INTO やブックマーク操作のため非同期なので、バックアップに触れる
+ * メソッド (`status`/`listBackups`/`createBackup`/`restoreBackup`/`deleteBackup`) はすべて
+ * `Promise` を返す非同期メソッドにしている。
  * `startGame`/`initialize`/`reset`/`setLastTime`/`advanceTurn` は repo 操作のみなので同期のまま。
  */
 export class AdminService {
