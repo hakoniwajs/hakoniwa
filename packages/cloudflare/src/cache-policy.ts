@@ -26,8 +26,27 @@ export interface AnonymousPageProps {
   origin?: string;
 }
 
+/**
+ * ログイン中のページの props。セッションごとにキャッシュを分ける。
+ * - `sessionId`: Gateway がセッションの Cookie キャッシュ (署名付き) で検証したセッション ID。
+ *   ページに埋め込む CSRF トークンが HMAC(secret, sessionId) なので、ユーザー単位ではなく
+ *   セッション単位で分ける必要がある。
+ * - `rev`: Cookie `hako_rev` の値。DO が状態を変えるリクエスト (POST など) のたびに新しい値を
+ *   Set-Cookie するので、自分の操作の直後の GET は必ず新しいキャッシュキーになる。利用者が
+ *   書き換えても、自分のセッションのキャッシュが外れるだけ (他人の応答は `sessionId` が違うため
+ *   取得できない)。
+ * - `origin`: 未ログインの場合と同じ。
+ */
+export interface SessionPageProps {
+  v: 1;
+  viewer: "session";
+  sessionId: string;
+  rev: string;
+  origin: string;
+}
+
 /** CachedPages に渡す `ctx.props`。キャッシュキーの一部になる。 */
-export type CachedPagesProps = AnonymousPageProps;
+export type CachedPagesProps = AnonymousPageProps | SessionPageProps;
 
 /** Gateway がリクエストをどう扱うか。 */
 export type GatewayPlan =
@@ -59,6 +78,31 @@ const PAGE_PATHS = [
 ] as const;
 
 /**
+ * ログイン中ならキャッシュするページ: `PAGE_PATHS` と `/games/:gameId/my-island` (開発画面)。
+ * 管理画面 (`/admin*`)・アカウント設定 (`/account*`)・ログイン (`/login`, `/auth/*`,
+ * `/api/auth/*`) はここに含めず、常に DO へ直接転送する。
+ */
+const SESSION_PAGE_PATHS = [...PAGE_PATHS, /^\/games\/[0-9]+\/my-island$/] as const;
+
+/** `/games/:gameId` (トップ)。`?notice=no_island` (島を持たずに開発画面を開いたときの通知) を残す。 */
+const TOP_PATH = /^\/games\/[0-9]+$/;
+
+/**
+ * Cookie `hako_rev` (DO が状態を変えるリクエストのたびに付け替える世代番号)。
+ * ドットを含まない名前にして、better-auth の Cookie (`hako.`) と区別する。
+ */
+export const REV_COOKIE = "hako_rev";
+
+/** `hako_rev` の値として受け付ける形 (DO は Date.now() 由来の 36 進数を付ける)。 */
+const REV_VALUE = /^[0-9a-z]{1,16}$/;
+
+/**
+ * セッションの Cookie キャッシュの有効期限まで、これより短ければキャッシュを使わずに DO へ
+ * 転送する (DO 側で期限切れと判定されて Cookie が作り直される場合に備えた余裕)。
+ */
+export const SESSION_EXPIRY_MARGIN_MS = 10_000;
+
+/**
  * better-auth の Cookie (`cookiePrefix` は `hako`。`hako.session_token` / `hako.session_data`
  * など。HTTPS では `__Secure-` が付く) の名前。
  */
@@ -70,20 +114,48 @@ const TURN_PARAM = /^[0-9]{1,10}$/;
 /** 未ログイン扱いのリクエストで DO へ渡してよいヘッダ。Cookie と Authorization は渡さない。 */
 const ANONYMOUS_FORWARDED_HEADERS = ["accept"] as const;
 
-/** Cookie ヘッダの各 Cookie の名前を取り出す。 */
-export function cookieNames(cookieHeader: string | null): string[] {
+/**
+ * Cookie ヘッダを `name=value` の組に分ける (値はデコードしない)。
+ */
+function cookiePairs(cookieHeader: string | null): { name: string; pair: string; value: string }[] {
   if (cookieHeader === null) {
     return [];
   }
-  const names: string[] = [];
+  const pairs: { name: string; pair: string; value: string }[] = [];
   for (const part of cookieHeader.split(";")) {
-    const index = part.indexOf("=");
-    const name = (index === -1 ? part : part.slice(0, index)).trim();
-    if (name !== "") {
-      names.push(name);
+    const trimmed = part.trim();
+    const index = trimmed.indexOf("=");
+    const name = (index === -1 ? trimmed : trimmed.slice(0, index)).trim();
+    if (name === "") {
+      continue;
     }
+    pairs.push({ name, pair: trimmed, value: index === -1 ? "" : trimmed.slice(index + 1).trim() });
   }
-  return names;
+  return pairs;
+}
+
+/** Cookie ヘッダの各 Cookie の名前を取り出す。 */
+export function cookieNames(cookieHeader: string | null): string[] {
+  return cookiePairs(cookieHeader).map((pair) => pair.name);
+}
+
+/** Cookie `hako_rev` の値。無い・形が違う場合は空文字列。 */
+export function revOf(request: Request): string {
+  const found = cookiePairs(request.headers.get("cookie")).find((pair) => pair.name === REV_COOKIE);
+  return found !== undefined && REV_VALUE.test(found.value) ? found.value : "";
+}
+
+/** DO が状態を変えるリクエストの応答に付ける `Set-Cookie: hako_rev=...`。 */
+export function revSetCookie(rev: string, secure: boolean): string {
+  return `${REV_COOKIE}=${rev}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+}
+
+/** better-auth の Cookie だけを残した Cookie ヘッダ (ログイン中のページを DO に描画させるため)。 */
+function authCookieHeader(request: Request): string {
+  return cookiePairs(request.headers.get("cookie"))
+    .filter((pair) => AUTH_COOKIE_NAME.test(pair.name))
+    .map((pair) => pair.pair)
+    .join("; ");
 }
 
 /** ログイン中の可能性がある (better-auth の Cookie を 1 つでも持つ) か。 */
@@ -103,6 +175,34 @@ function pickHeaders(source: Headers, names: readonly string[]): Headers {
 }
 
 /**
+ * Gateway がセッションの Cookie キャッシュを検証すべきリクエストか (ログイン中なら
+ * キャッシュするページへの GET/HEAD で、better-auth の Cookie を持つ)。検証には auth secret が
+ * 要るので、必要なときだけ行う。
+ */
+export function needsSessionVerification(request: Request): boolean {
+  const method = request.method.toUpperCase();
+  if ((method !== "GET" && method !== "HEAD") || request.headers.get("upgrade") !== null) {
+    return false;
+  }
+  const { pathname } = new URL(request.url);
+  return SESSION_PAGE_PATHS.some((pattern) => pattern.test(pathname)) && hasAuthCookie(request);
+}
+
+/** Gateway がエッジで検証したセッション (`@hakoniwajs/core` の verifySessionCookieCache の結果)。 */
+export interface GatewaySession {
+  sessionId: string;
+  /** Cookie キャッシュの有効期限 (unix ミリ秒)。 */
+  expiresAt: number;
+}
+
+export interface PlanGatewayOptions {
+  /** 検証できたセッション。検証していない・できなかった場合は undefined。 */
+  session?: GatewaySession | undefined;
+  /** 現在時刻 (unix ミリ秒)。 */
+  now: number;
+}
+
+/**
  * リクエストを CachedPages 経由にするかどうかと、そのときの props・キャッシュキーを決める。
  *
  * - GET/HEAD 以外、WebSocket の Upgrade は常に DO へ直接転送する。
@@ -112,8 +212,16 @@ function pickHeaders(source: Headers, names: readonly string[]): Headers {
  *   扱いにする (Cookie を持つリクエストは、ログイン中のページを誤って未ログインのキャッシュから
  *   返さないよう DO へ直接転送する)。クエリはすべて落とし、Cookie などのヘッダは DO へ渡さない
  *   (DO は必ず未ログインとして描画する)。
+ * - better-auth の Cookie を持つリクエストは、ログイン中ならキャッシュするページ
+ *   (`SESSION_PAGE_PATHS`) で、Gateway がセッションを検証でき (`options.session`)、その
+ *   有効期限まで余裕がある場合だけ、セッションごとの props で CachedPages 経由にする。
+ *   クエリはトップの `notice=no_island` だけを残し、DO には better-auth の Cookie だけを渡す。
+ *   検証できなければ DO へ直接転送する。
  */
-export function planGatewayRequest(request: Request): GatewayPlan {
+export function planGatewayRequest(
+  request: Request,
+  options: PlanGatewayOptions = { now: Date.now() },
+): GatewayPlan {
   const method = request.method.toUpperCase();
   if (method !== "GET" && method !== "HEAD") {
     return { kind: "direct" };
@@ -135,7 +243,10 @@ export function planGatewayRequest(request: Request): GatewayPlan {
       headers: pickHeaders(request.headers, ANONYMOUS_FORWARDED_HEADERS),
     };
   }
-  if (PAGE_PATHS.some((pattern) => pattern.test(url.pathname)) && !hasAuthCookie(request)) {
+  if (!hasAuthCookie(request)) {
+    if (!PAGE_PATHS.some((pattern) => pattern.test(url.pathname))) {
+      return { kind: "direct" };
+    }
     const cacheKey = url.pathname;
     return {
       kind: "cached",
@@ -146,7 +257,36 @@ export function planGatewayRequest(request: Request): GatewayPlan {
       headers: pickHeaders(request.headers, ANONYMOUS_FORWARDED_HEADERS),
     };
   }
-  return { kind: "direct" };
+  const { session, now } = options;
+  if (
+    session === undefined ||
+    session.sessionId === "" ||
+    session.expiresAt - now < SESSION_EXPIRY_MARGIN_MS ||
+    !SESSION_PAGE_PATHS.some((pattern) => pattern.test(url.pathname))
+  ) {
+    return { kind: "direct" };
+  }
+  const search =
+    TOP_PATH.test(url.pathname) && url.searchParams.get("notice") === "no_island"
+      ? "?notice=no_island"
+      : "";
+  const cacheKey = `${url.pathname}${search}`;
+  const headers = pickHeaders(request.headers, ANONYMOUS_FORWARDED_HEADERS);
+  headers.set("cookie", authCookieHeader(request));
+  return {
+    kind: "cached",
+    props: {
+      v: 1,
+      viewer: "session",
+      sessionId: session.sessionId,
+      rev: revOf(request),
+      origin: url.origin,
+    },
+    cacheKey,
+    url: `${url.origin}${cacheKey}`,
+    method,
+    headers,
+  };
 }
 
 /**

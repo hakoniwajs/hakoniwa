@@ -102,6 +102,56 @@ export async function loginAsAdmin(
   return { cookie, csrfToken };
 }
 
+/** Set-Cookie (複数) を、次のリクエストの Cookie ヘッダに使える `name=value; ...` にまとめる。 */
+export function cookieHeaderFrom(response: Response, base = ""): string {
+  const jar = new Map<string, string>();
+  for (const part of base.split(";")) {
+    const trimmed = part.trim();
+    const index = trimmed.indexOf("=");
+    if (index > 0) {
+      jar.set(trimmed.slice(0, index), trimmed.slice(index + 1));
+    }
+  }
+  for (const setCookie of response.headers.getSetCookie()) {
+    const pair = setCookie.split(";")[0] ?? "";
+    const index = pair.indexOf("=");
+    if (index <= 0) {
+      continue;
+    }
+    const name = pair.slice(0, index);
+    const value = pair.slice(index + 1);
+    if (/max-age=0/i.test(setCookie) || value === "") {
+      jar.delete(name);
+    } else {
+      jar.set(name, value);
+    }
+  }
+  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
+/**
+ * 開発ログインして、ログインの応答の Set-Cookie をすべて (セッショントークンとセッションの
+ * Cookie キャッシュ `hako.session_data`) 含む Cookie ヘッダと、CSRF トークンを返す。
+ */
+export async function loginWithAllCookies(
+  email = "admin@example.com",
+): Promise<{ cookie: string; csrfToken: string }> {
+  const stub = mainGameStub();
+  const loginRes = await stub.fetch("http://example.com/auth/dev", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: `email=${encodeURIComponent(email)}`,
+    redirect: "manual",
+  });
+  const cookie = cookieHeaderFrom(loginRes);
+  const adminRes = await stub.fetch("http://example.com/admin", { headers: { cookie } });
+  const csrfToken = (await adminRes.text()).match(/name="_csrf" value="([^"]+)"/)?.[1];
+  if (csrfToken === undefined) {
+    throw new Error("csrf token not found");
+  }
+  return { cookie, csrfToken };
+}
+
 /** ゲームを開始する (DO への直接 fetch)。既定 (start-at 省略) なら即座に開始扱いになる。 */
 export async function startGame(cookie: string, csrfToken: string): Promise<void> {
   const stub = mainGameStub();

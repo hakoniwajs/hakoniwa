@@ -1,6 +1,6 @@
 ---
 title: キャッシュの仕組み
-description: Workers Cache のエントリポイント構成と既定の no-store 方針、未ログインのページのキャッシュ、画像の長期キャッシュを説明します。
+description: Workers Cache のエントリポイント構成と既定の no-store 方針、未ログイン・ログイン中のページのキャッシュ、画像の長期キャッシュを説明します。
 sidebar:
   label: キャッシュの仕組み
 ---
@@ -38,7 +38,7 @@ HakoniwaGame (DO)
 - Gateway は `CachedPages` の応答のうち画像以外を `Cache-Control: private, no-store` に書き換えてからブラウザへ返します (エッジのキャッシュ用に `public` にしていても、ブラウザには HTML をキャッシュさせないため)
 - 利用側のエントリが `CachedPages` を再エクスポートしていない (`ctx.exports.CachedPages` が無い) 場合は、キャッシュを使わずに DO へ直接転送します
 
-`CachedPages` 経由にしているのは、OGP 画像と未ログインのページ (後述) です。OGP 画像は誰が見ても同じ画像なので `props` は `{ v: 1, viewer: "anonymous" }` の固定値にし、クエリは `turn` だけを残します。Gateway は動作確認用に `X-Hakoniwa-Route: cached | direct` (`CachedPages` 経由か、DO へ直接転送したか) を付けます。
+`CachedPages` 経由にしているのは、OGP 画像と、未ログイン・ログイン中のページ (後述) です。OGP 画像は誰が見ても同じ画像なので `props` は `{ v: 1, viewer: "anonymous" }` の固定値にし、クエリは `turn` だけを残します。Gateway は動作確認用に `X-Hakoniwa-Route: cached | direct` (`CachedPages` 経由か、DO へ直接転送したか) を付けます。
 
 `GET /games/:gameId/islands/:id/ogp.png` は、画像の変わりやすさに応じて `Cache-Control` を出し分けます (`routes/islands.tsx` の `ogpCacheControl`)。
 
@@ -74,5 +74,35 @@ HakoniwaGame (DO)
 タグは `game-<gameId>`・`island-<gameId>-<islandId>`・`games` です。
 
 キャッシュした HTML の表示が古くならないよう、「次のターンまであと N 分」のような **リクエスト時刻に依存する表示は HTML に埋め込みません**。トップページの残り時間は、予定時刻 (unix 秒) を `data-remaining-until` 属性に置き、`packages/core/public/remaining.js` がブラウザの現在時刻で計算して表示します (表記は `app/format.ts` の `formatRemaining` と同じ)。JavaScript が無効な場合は、予定時刻 (絶対時刻) だけが表示されます。
+
+## ログイン中のページのキャッシュ
+
+ログイン中の GET の `/games`・`/games/:gameId`・`/games/:gameId/islands/:id`・`/games/:gameId/my-island` (開発画面) も、**セッションごとに** キャッシュします。キャッシュ期間・タグは未ログインのページと同じです。
+
+### エッジでのセッションの検証
+
+いまのセッションを確かめられるのは DO だけですが、キャッシュのたびに DO に問い合わせては意味がありません。そこで better-auth の [Cookie キャッシュ](https://www.better-auth.com/docs/concepts/session-management#cookie-cache) (`session.cookieCache`) を有効にし (Cloudflare 版だけ。`buildDeps({ sessionCookieCache: true })`)、セッション情報を署名付き Cookie `hako.session_data` (HTTPS で `__Secure-` が付く場合あり) にも入れています。Gateway はこれを DO に問い合わせずに検証します (`@hakoniwajs/core` の `verifySessionCookieCache`)。
+
+- 署名 (HMAC-SHA256)・Cookie キャッシュの有効期限・セッション自体の有効期限の検証は、better-auth 自身の `getCookieCache` に任せます。Cookie 名も better-auth の `getCookies` で求めます (`authCookieNames`)
+- Cookie キャッシュの中のセッショントークンが、セッショントークンの Cookie (`hako.session_token`) と一致することも確かめます。一致しなければ DO 側の better-auth は DB を引くため、エッジと DO で別のセッションになりうるからです
+- 署名の鍵 (auth secret) は、`HAKONIWA_AUTH_SECRET` があればそれ、無ければ DO の RPC (`HakoniwaGame.authSecret()`) で取得し、isolate 内で 10 分間メモ化します
+- 検証できない場合 (Cookie キャッシュが無い・期限切れ・期限まで 10 秒未満・改ざん・secret を取得できない) は、**キャッシュを使わずに DO へ直接転送** します
+- Cookie キャッシュの有効期間は 5 分 (`SESSION_COOKIE_CACHE_MAX_AGE_SEC`) です。期限が切れた後の最初のリクエストは DO へ直接転送され、DO が DB のセッションを確かめて Cookie キャッシュを作り直します (session ミドルウェアが GET/HEAD の応答に better-auth の Set-Cookie を付けます)
+
+DO の session ミドルウェアも、GET/HEAD では Cookie キャッシュを使います (エッジで検証したセッションと一致させるため)。管理画面 (`/admin*`)・アカウント設定 (`/account*`) と、POST などの状態を変えるリクエストでは、Cookie キャッシュを使わずに DB のセッションを確かめます。そのため、ログアウトや他の端末でのセッション削除がキャッシュされたページに反映されるまで、最大で 5 分かかります (管理画面・操作には即座に反映されます)。
+
+### `props` と自分の操作の反映
+
+`props` は `{ v: 1, viewer: "session", sessionId, rev, origin }` です。
+
+- **`sessionId`**: ページに埋め込む CSRF トークンが `HMAC(secret, sessionId)` なので、ユーザー単位ではなくセッション単位で分けます
+- **`rev`**: Cookie `hako_rev` の値です。DO は状態を変えるリクエスト (GET/HEAD 以外) の応答に、単調増加する世代番号 (`Date.now()` 由来の 36 進数) を `Set-Cookie: hako_rev=...` で付けます。計画の登録やコメントの変更の直後の GET は新しいキャッシュキーになり、必ず最新の内容が表示されます。purge は 5 回/分しか使えないため、自分の操作による変更は purge ではなくキーを変えることで反映します
+- `hako_rev` は利用者が書き換えられますが、`sessionId` はエッジで検証した値なので、書き換えても自分のセッションのキャッシュが外れるだけです
+
+DO には better-auth の Cookie だけを渡し、クエリはトップの `notice=no_island` だけを残します。他のプレイヤーの操作やターン進行は、未ログインのページと同じく最大 60 秒 (+ `stale-while-revalidate`) で反映されます。
+
+### キャッシュしないもの
+
+管理画面 (`/admin*`)・アカウント設定 (`/account*`)・ログイン (`/login`、`/auth/*`、`/api/auth/*`)・`/`・GET/HEAD 以外のリクエストは、Gateway から DO へそのまま転送します。`Set-Cookie` を含む応答は `CachedPages` がキャッシュさせません。
 
 以前のバージョンの KV スナップショットキャッシュ (`SNAPSHOT` バインディング、`HAKONIWA_SNAPSHOT_TTL_*`) は廃止しました。既存のデプロイに設定が残っていても無視されます。
