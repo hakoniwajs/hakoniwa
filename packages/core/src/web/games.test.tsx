@@ -39,7 +39,7 @@ describe("GET /games (ゲーム一覧)", () => {
     const html = await res.text();
     expect(html).toContain('<a href="/games" class="footer-games">');
     expect(html).toContain("過去のゲーム");
-    // コーディネーターの追加指示: 遊び方リンクも常に表示する (ゲームが無くても)。
+    // 遊び方リンクも常に表示する (ゲームが無くても)。
     expect(html).toContain('href="https://hako2d-mj.xii.jp/pin/st/manual/man01.html"');
   });
 });

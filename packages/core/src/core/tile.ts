@@ -16,10 +16,8 @@ export interface TileView {
 /**
  * 1 ヘックスの画像・説明文を決める。Perl 版 landString。
  *
- * 設計書 (tmp/17-ogp.md) は `tileFor(hex, mode, turn)` (config 無し) としているが、
- * 森の本数・町の人口・基地の経験値など説明文 (alt) の一部は config.units に依存しており、
- * 省くと表示が変わってしまう (「表示は変えない」という要求と矛盾する)。そのため config を
- * 4 番目の引数として残す。設計書との差異。
+ * 森の本数・町の人口・基地の経験値など説明文 (alt) の一部は config.units に依存するため、
+ * config を 4 番目の引数として受け取る。
  */
 export function tileFor(hex: Hex, mode: TileMode, turn: number, config: GameConfig): TileView {
   const { kind, value } = hex;

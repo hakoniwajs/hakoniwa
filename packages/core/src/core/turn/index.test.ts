@@ -55,7 +55,7 @@ describe("runTurn", () => {
     expect(result.logs.some((l) => l.html.includes("人がいなくなり"))).toBe(false);
   });
 
-  // コーディネーターの修正指示: history は GameService.abandonIsland が放棄した時点で
+  // history は GameService.abandonIsland が放棄した時点で
   // 1 回だけ記録する。ターン末の除去 (turn/index.ts) では通常ログだけを出し、history は
   // 増やさない (二重記録の防止)。
   it("放棄島のターン末除去では history が増えない (通常ログのみ)", () => {

@@ -1,6 +1,6 @@
 // Perl 版 Map.pm islandMap の移植。
-// 1 ヘックスの画像・説明文の決定 (観光者への偽装、怪獣の硬化画像) は core/tile.ts の tileFor に
-// 移した (tmp/17-ogp.md。OGP 画像生成と表示で同じ画像選択ロジックを共用するため)。
+// 1 ヘックスの画像・説明文の決定 (観光者への偽装、怪獣の硬化画像) は core/tile.ts の tileFor が
+// 行う (tmp/17-ogp.md。OGP 画像生成と表示で同じ画像選択ロジックを共用するため)。
 import type { GameConfig } from "../../core/config.ts";
 import { CommandKind, commandSpecs } from "../../core/constants.ts";
 import { tileFor } from "../../core/tile.ts";

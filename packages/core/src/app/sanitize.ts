@@ -39,7 +39,7 @@ export function sanitizeText(s: string, maxCodePoints: number): string {
 /**
  * 島名として使えない名前か判定する。
  * B20: Perl 版は新規作成時 (`,?()<>$` + `無人`) と変更時 (`,?()<>` + `無人`、`$` なし) で
- * 規則が微妙に異なっていたが、設計書の指示により両方ともこの規則に統一する。
+ * 規則が微妙に異なっていたが、TS 版では両方ともこの規則に統一する。
  */
 export function isBadIslandName(name: string): boolean {
   return /[,?()<>$]/.test(name) || name === "無人";

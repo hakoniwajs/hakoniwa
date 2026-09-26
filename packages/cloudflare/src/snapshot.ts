@@ -65,7 +65,7 @@ export type PageSnapshotRequest =
 
 /**
  * DO の RPC `pageSnapshot` の戻り値。ゲーム/島が存在しない場合は `undefined`
- * (呼び出し側は従来どおり DO への HTTP 転送にフォールバックする)。
+ * (呼び出し側は DO への HTTP 転送にフォールバックする)。
  * `vm` は RPC 越しにクラスインスタンスを渡せないため、island は常に `IslandPageSnapshotVM`
  * (terrain が number[][]) にした形で返す。`site` は描画時点のサイト設定 (Worker 側レンダリングに
  * 使い、`siteSnapshotKey()` に `siteTtl` で保存する)。

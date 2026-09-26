@@ -175,9 +175,9 @@ function loadAuthConfig(env: Record<string, string | undefined>): AuthConfig {
 /**
  * 環境変数から `AppConfig` を組み立てる。不正な値 (真偽値/数値としてパースできない) は Error を throw する。
  *
- * 次の環境変数は廃止した (読まない): HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT /
- * HAKONIWA_FINAL_TURN。いずれも「新しいゲームを開始」フォームと CLI `game new` / `db init` の
- * 既定値にしか使われておらず、フォーム/CLI の引数で明示できるため。
+ * HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT / HAKONIWA_FINAL_TURN は読まない。1 ターンの
+ * 長さ・開始時刻・最終ターンは「新しいゲームを開始」フォームと CLI `game new` / `db init` の
+ * 引数で指定する。
  */
 export function loadConfigFromEnv(env: Record<string, string | undefined>): AppConfig {
   const debug = parseBool("HAKONIWA_DEBUG", env.HAKONIWA_DEBUG, defaultConfig.debug);

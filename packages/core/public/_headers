@@ -1,8 +1,8 @@
 # tmp/21-kv-snapshot-cache.md「静的アセット (画像) の長期キャッシュ」節。
 # Workers Static Assets (https://developers.cloudflare.com/workers/static-assets/headers/) の
 # 既定は `Cache-Control: public, max-age=0, must-revalidate` (毎回再検証) のため、地形タイル画像
-# (packages/core/public/images/) だけ長期 immutable にする。島ページ・トップページを開くたびに
-# 画像ごとに再検証の往復が発生していた分を無くす。
+# (packages/core/public/images/) だけ長期 immutable にし、島ページ・トップページを開くたびに
+# 画像ごとに再検証の往復が発生しないようにする。
 #
 # style.css と owner.js はデプロイで内容が変わるため既定 (再検証) のままにする。
 # 画像を差し替えるときはファイル名を変える運用にすること (https://hakoniwajs.github.io/hakoniwa/development/cache/ 参照)。

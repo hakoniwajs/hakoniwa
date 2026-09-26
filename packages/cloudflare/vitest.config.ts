@@ -17,7 +17,7 @@ export default defineConfig({
       wrangler: { configPath: "../../wrangler.jsonc" },
       // wrangler.jsonc の vars を上書きし、開発ログインと管理者をテスト用に設定する。
       // HAKONIWA_AUTH_SECRET はあえて設定せず、DO の settings 表への自動生成の経路を通す。
-      // 設計書との差異: wrangler.jsonc を root に移したことで、wrangler の
+      // wrangler.jsonc はリポジトリ直下にあるため、wrangler の
       // 「設定ファイルと同じディレクトリの .env を自動読み込みする」機能により、開発者の
       // root .env (Node 版の開発用。HAKONIWA_BASE_URL を設定していることがある) がこのテスト
       // 環境にも読み込まれてしまう。HAKONIWA_BASE_URL は省略可能な動作を検証したいため、

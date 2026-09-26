@@ -31,7 +31,7 @@ describe("cli", () => {
     env = {
       HAKONIWA_DB_PATH: join(dir, "hakoniwa.sqlite"),
       HAKONIWA_BACKUP_DIR: join(dir, "backups"),
-      // v2 (better-auth) で必須になった環境変数 (14-users-auth.md)。
+      // auth secret は未設定なら自動生成されるが、テストでは固定値を渡す。
       HAKONIWA_AUTH_SECRET: "a".repeat(32),
     };
   });
@@ -185,7 +185,7 @@ describe("cli (tmp/16-season.md: 開始時刻・最終ターン)", () => {
     expect(status).toContain("状態(シーズン): ゲーム開始前");
   });
 
-  it("db init は廃止した HAKONIWA_START_AT / HAKONIWA_FINAL_TURN を読まない (省略時は無期限)", async () => {
+  it("db init は HAKONIWA_START_AT / HAKONIWA_FINAL_TURN を読まない (省略時は無期限)", async () => {
     const envWithDeprecated = {
       ...env,
       HAKONIWA_START_AT: "2026-10-01T21:00:00+09:00",
@@ -270,7 +270,7 @@ describe("cli (tmp/16-season.md: ターンの長さも DB に持つ)", () => {
     expect(statusIO.lines.join("\n")).toContain("1 ターンの長さ: 1分");
   });
 
-  it("db init は廃止した HAKONIWA_UNIT_TIME_SEC を読まない (省略時は 6 時間)", async () => {
+  it("db init は HAKONIWA_UNIT_TIME_SEC を読まない (省略時は 6 時間)", async () => {
     const envWithDeprecated = { ...env, HAKONIWA_UNIT_TIME_SEC: "3600" };
     expect(await runCli(["db", "init"], envWithDeprecated, createIO())).toBe(0);
 

@@ -92,7 +92,7 @@ describe("loadConfigFromEnv", () => {
     expect(config.siteDefaults).toEqual(defaultSiteSettings);
   });
 
-  it("廃止した HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT / HAKONIWA_FINAL_TURN は読まない", () => {
+  it("HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT / HAKONIWA_FINAL_TURN は読まない", () => {
     const config = loadConfigFromEnv({
       HAKONIWA_AUTH_SECRET: AUTH_SECRET,
       HAKONIWA_UNIT_TIME_SEC: "abc",

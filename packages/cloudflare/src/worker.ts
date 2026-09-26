@@ -13,9 +13,9 @@
 // tmp/21-kv-snapshot-cache.md: 未ログイン (セッション Cookie 無し) の GET `/games/:gameId`
 // (トップ) と `/games/:gameId/islands/:id` (観光) だけは、DO への往復を省くために View Model
 // を Workers KV (`env.SNAPSHOT`。バインド省略可能) にキャッシュし、Worker 側でレンダリングして
-// 応答する (`tryServeFromSnapshot`)。HTML 自体はキャッシュしない (`Cache-Control` は従来どおり
-// `private, no-store`) ので、「次のターンまであと N 分」はリクエスト時刻で再計算され古くならない。
-// 対象外・KV 未バインド・キャッシュにも DO にも無ければ、従来どおり DO への HTTP 転送に委ねる。
+// 応答する (`tryServeFromSnapshot`)。HTML 自体はキャッシュしない (`Cache-Control` は他のページと
+// 同じく `private, no-store`) ので、「次のターンまであと N 分」はリクエスト時刻で再計算され古くならない。
+// 対象外・KV 未バインド・キャッシュにも DO にも無ければ、通常どおり DO への HTTP 転送に委ねる。
 // サイト設定 (タイトル・フッタ・タイムゾーン等) は管理画面から変わり DO の settings 表にあるため、
 // 環境変数からは読まず、DO の `pageSnapshot` が返したものを KV (`siteSnapshotKey()`、短期 TTL) に
 // 置いて使う。View Model とサイト設定の両方が KV にあるときだけ hit として KV から応答する。
@@ -122,7 +122,7 @@ async function putSnapshots(
  * 未ログイン GET の `/games/:gameId` / `/games/:gameId/islands/:id` を KV スナップショット
  * (View Model の JSON) から応答する。対象外リクエスト、`env.SNAPSHOT` 未バインド、
  * キャッシュにも DO 側にも対象が無い場合は `undefined` を返す
- * (呼び出し側が従来どおり DO への HTTP 転送にフォールバックする)。
+ * (呼び出し側が DO への HTTP 転送にフォールバックする)。
  */
 async function tryServeFromSnapshot(
   request: Request,

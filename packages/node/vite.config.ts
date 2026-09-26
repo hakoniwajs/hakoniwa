@@ -7,10 +7,9 @@ import type { PluginOption } from "vite-plus";
 // dev: `@hono/vite-dev-server` が src/dev.ts の default export (Hono app) を SSR ランナーで動かす。
 // build: SSR ビルドで dist/server.js と dist/cli.js を出す。
 //
-// 設計書との差異: Phase 8 (packages/cloudflare) が wrangler/@cloudflare/vite-plugin を依存に追加した
-// ことで、pnpm のワークスペース全体でピア解決が変わり (@hono/vite-dev-server の任意ピアである
-// wrangler/miniflare が解決されるようになった)、@hono/vite-dev-server が返す Plugin の型が
-// 実体の `vite` パッケージを指すようになった。一方 `vite-plus` の `defineConfig` が期待する
+// packages/cloudflare が wrangler/@cloudflare/vite-plugin に依存しているため、pnpm のワークスペース
+// 全体で @hono/vite-dev-server の任意ピアである wrangler/miniflare が解決され、
+// @hono/vite-dev-server が返す Plugin の型が実体の `vite` パッケージを指す。一方 `vite-plus` の `defineConfig` が期待する
 // `PluginOption` は `vite-plus` 自身が同梱する `vite` 相当 (`@voidzero-dev/vite-plus-core`) の型で、
 // 両者は構造的にほぼ同じだが別モジュールの型のため、そのまま渡すと型チェッカーが
 // `Excessive stack depth` で落ちる (再帰的な Plugin 型同士の比較)。`unknown` 経由のキャストで
@@ -28,8 +27,8 @@ export default defineConfig({
   },
   // @hakoniwajs/core は .ts を exports しているため、ソースからバンドルへ同梱する。
   ssr: { noExternal: ["@hakoniwajs/core"] },
-  // 設計書 (tmp/09-tooling.md) は esbuild オプションを指定しているが、packages/core/vite.config.ts
-  // と同じ理由 (vite-plus は rolldown-vite ベースで esbuild が deprecated) で oxc オプションを使う。
+  // packages/core/vite.config.ts と同じ理由 (vite-plus は rolldown-vite ベースで esbuild が
+  // deprecated) で oxc オプションを使う。
   oxc: { jsx: { runtime: "automatic", importSource: "hono/jsx" } },
   test: {
     include: ["test/**/*.test.ts"],

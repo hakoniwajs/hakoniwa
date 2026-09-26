@@ -28,7 +28,7 @@ function makeIsland(
 
 /**
  * `repo.createGame` でゲームを作り、必要なら `turn`/`lastTime`/`nextIslandId` を上書きして
- * gameId を返す (旧 `repo.initialize({...})` の代わり)。
+ * gameId を返す。
  */
 function setupGame(
   repo: FakeGameRepository,
@@ -526,7 +526,7 @@ describe("tmp/16-season.md: 開始前の状態 = ターン 0", () => {
   });
 
   // 終了判定は `turn >= finalTurn`。firstTurn=1 の旧方式ゲームも、カウンタが finalTurn を
-  // 超えないよう同じ位置で止める (従来の `turn > finalTurn` ではなく)。
+  // 超えないよう同じ位置で止める。
   it("(d) firstTurn=1 の旧方式ゲームも turn >= finalTurn で終了する", () => {
     const repo = new FakeGameRepository();
     const gameId = setupGame(repo, {
@@ -545,7 +545,7 @@ describe("tmp/16-season.md: 開始前の状態 = ターン 0", () => {
       logger: new FakeLogger(),
     });
 
-    // turn=4 → 5 (5 >= 5 で終了)。旧方式の turn=6 には進まない。
+    // turn=4 → 5 (5 >= 5 で終了)。turn=6 には進まない。
     const advanced = turnService.advanceTurnIfDue(defaultConfig.unitTimeSec * 100);
 
     expect(advanced).toBe(1);

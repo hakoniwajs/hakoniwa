@@ -22,7 +22,7 @@ export default defineConfig({
     // cloudflareTest プラグインは実行中の vitest インスタンス (TestProject 等) に直接フックする
     // 実装のため、vite-plus 同梱の別インスタンス経由では `describe()` が
     // "Cannot read properties of undefined (reading 'config')" で落ちる
-    // (tmp/12-workers-adapter.md 「実装時の指示」、tmp/09-tooling.md 参照。設計書との差異)。
+    // (tmp/12-workers-adapter.md 「実装時の指示」、tmp/09-tooling.md 参照)。
     // packages/cloudflare 単体では `pnpm --filter @hakoniwajs/cloudflare test`
     // (実体は素の `vitest run`) で問題なく動く。
     projects: ["packages/*", "!packages/cloudflare"],

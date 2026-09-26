@@ -33,10 +33,10 @@ export interface Env {
   HAKONIWA_MAX_CATCH_UP_TURNS?: string;
   // サイト設定 (HAKONIWA_SITE_TITLE / HAKONIWA_ADMIN_NAME / HAKONIWA_EMAIL / HAKONIWA_BBS_URL /
   // HAKONIWA_TOPPAGE_URL / HAKONIWA_NG_WORDS / HAKONIWA_USE_LBBS / HAKONIWA_TIMEZONE) は
-  // 管理画面の「サイト設定」に移した。既存デプロイで設定済みなら、settings 表に値が無い間の
+  // 管理画面の「サイト設定」で変更する。設定されていれば、settings 表に値が無い間の
   // 既定値として loadConfigFromEnv がそのまま読む (非推奨。pickStringEnv が文字列の env を
   // すべて渡すため、ここに型を書かなくても読まれる)。
-  // HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT / HAKONIWA_FINAL_TURN は廃止した (読まない)。
+  // HAKONIWA_UNIT_TIME_SEC / HAKONIWA_START_AT / HAKONIWA_FINAL_TURN は読まない。
 
   // tmp/21-kv-snapshot-cache.md: KV スナップショットの TTL (秒)。SNAPSHOT が未バインドなら
   // 無視される。`snapshot.ts` の `loadSnapshotTtlConfig` が読む (Workers KV の最小 TTL 60 秒

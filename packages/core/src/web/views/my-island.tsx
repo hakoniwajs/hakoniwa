@@ -1,6 +1,6 @@
-// Perl 版 Map.pm tempOwner/tempCommand の移植。tmp/14-users-auth.md によりパスワード欄を撤去し、
-// 名前変更フォーム (旧 POST /settings) をこの画面に統合した (GameService.changeName は
-// actor 自身の島にしか効かないため、URL/フォームに islandId を含める必要がなくなったため)。
+// Perl 版 Map.pm tempOwner/tempCommand の移植。パスワード欄は無い (tmp/14-users-auth.md)。
+// 名前変更フォームもこの画面に置く (GameService.changeName は actor 自身の島にしか効かないため、
+// URL/フォームに islandId を含めない)。
 import type { GameConfig } from "../../core/config.ts";
 import { commandList } from "../../core/constants.ts";
 import type { FormattedCommand } from "../../core/commands/format.ts";
@@ -179,7 +179,7 @@ function AbandonSection({
   );
 }
 
-/** 名前変更フォーム。旧 POST /settings をこの画面に統合したもの。 */
+/** 名前変更フォーム。 */
 function NameChangeForm({
   costChangeName,
   unit,
@@ -219,7 +219,7 @@ export interface MyIslandPageProps {
   useLbbs: boolean;
 }
 
-/** 開発画面。Perl 版 tempOwner + tempLbbs* + tempRecent(1)。旧 web/views/owner.tsx。 */
+/** 開発画面。Perl 版 tempOwner + tempLbbs* + tempRecent(1)。 */
 export function MyIslandPage({
   vm,
   config,

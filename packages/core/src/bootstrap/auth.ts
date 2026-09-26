@@ -2,17 +2,12 @@
 // 環境 (Node / Durable Objects) ごとに 1 インスタンスを作る。buildDeps の中で作り、
 // BuiltDeps.auth として返す。
 //
-// 設計書との差異:
 // - better-auth 1.7.5 の twitter/discord プロバイダは、プロフィールにメールが無い場合 (X 等)
 //   自前で `<id>@<provider>.placeholder.invalid` 形式のプレースホルダメールを生成する
 //   (`createPlaceholderEmail`。better-auth 本体の実装、anonymous プラグイン等と同じ仕組み)。
-//   そのため 14 のコード例にある `mapProfileToUser` によるプレースホルダ生成は不要
-//   (指定しても上書きされるだけで害はないが、二重実装を避けるため指定しない)。isAdminEmail は
-//   `.invalid` で終わるメールを常に除外するため、このプレースホルダは従来どおり管理者判定から
-//   除外される。
-// - 14 のコード例は `magicLink`/`APIError`/`createAuthMiddleware` を `better-auth/plugins`,
-//   `better-auth/api` から import する形を示しており、実際にそのパスで export されていることを
-//   node_modules で確認済み。
+//   そのため `mapProfileToUser` によるプレースホルダ生成は指定しない (指定しても上書きされる
+//   だけで、二重実装になる)。isAdminEmail は `.invalid` で終わるメールを常に除外するため、
+//   このプレースホルダは管理者判定から除外される。
 // - tmp/12-workers-adapter.md「Deploy to Cloudflare ボタン」節: HAKONIWA_BASE_URL は省略可能。
 //   未設定なら baseURL を渡さず (リクエストから推定させる)、trustedOrigins はリクエストの
 //   オリジンを返す関数にする。
@@ -61,7 +56,7 @@ export function createAuth(input: CreateAuthInput) {
         ? [auth.baseUrl]
         : (request) => (request !== undefined ? [new URL(request.url).origin] : []),
     advanced: {
-      // Cookie 名は `hako.session_token` になる (v1 の `hako_defaults` は廃止)。
+      // Cookie 名は `hako.session_token` になる。
       cookiePrefix: "hako",
     },
     socialProviders: {

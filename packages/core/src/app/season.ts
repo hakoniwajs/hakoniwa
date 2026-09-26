@@ -3,8 +3,7 @@
 import type { GameMeta, GameStatus } from "./ports.ts";
 
 /**
- * 終了状態。tmp/18-games.md: 最終ターン到達か手動終了で `status` が 'finished' になる
- * (従来の `turn > finalTurn` 判定を状態列に昇格させた)。
+ * 終了状態。tmp/18-games.md: 最終ターン到達か手動終了で `status` が 'finished' になる。
  */
 export function isFinished(meta: GameMeta): boolean {
   return meta.status === "finished";
@@ -53,13 +52,8 @@ export interface SeasonVM {
 }
 
 /**
- * `GameMeta` から `SeasonVM` を組み立てる。
- * 設計書との差異: tmp/16-season.md は `buildSeasonVM(meta, now, unitTimeSec)` だったが、
- * 追加要件「ターンの長さも DB に持つ」により `unitTimeSec` は `meta.unitTimeSec` を使うため、
- * 引数からは外した (呼び出し元で `config.unitTimeSec` を渡す必要が無くなった)。
- * tmp/18-games.md: `gameId`/`gameName`/`status` を追加。
- * tmp/16-season.md「開始前の状態 = ターン 0 (改訂 2026-09-20)」節: `isBeforeStart` が `now` を
- * 使わなくなった (`turn === 0` だけで判定) ため、`now` 引数も不要になり外した。
+ * `GameMeta` から `SeasonVM` を組み立てる。ターンの長さは `meta.unitTimeSec` (DB に持つ値) を
+ * 使い、開始前かどうかは `turn === 0` だけで判定する (`isBeforeStart`) ため、現在時刻は受け取らない。
  */
 export function buildSeasonVM(meta: GameMeta): SeasonVM {
   const finished = isFinished(meta);

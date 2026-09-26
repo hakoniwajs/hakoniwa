@@ -26,9 +26,8 @@ export interface GameMeta {
   firstTurn: number;
   lastTime: number;
   /**
-   * ターン1の処理 (ゲーム開始) が実行される (実行された) unix 秒。tmp/16-season.md は
-   * `last_time` の初期値から逆算する設計だったが、`unitTimeSec` の変更に弱く分かりにくいため、
-   * DB に直接持つ列にした (設計書との差異)。`createGame` 時に `lastTime` と同じ値で設定され、
+   * ターン1の処理 (ゲーム開始) が実行される (実行された) unix 秒。`last_time` からの逆算は
+   * `unitTimeSec` の変更に弱く分かりにくいため、DB に直接持つ列にしている。`createGame` 時に `lastTime` と同じ値で設定され、
    * 開始前 (turn=0) の間は `setLastTime` (管理画面「最終更新時刻の変更」) が同期して更新する
    * (tmp/16-season.md「開始前の状態 = ターン 0」節)。turn>=1 になった後は不変。
    */
@@ -92,7 +91,7 @@ export interface ListLogsQuery {
 
 /**
  * 計画登録フォームの初期値。tmp/14-users-auth.md「データモデル」の `user_prefs` 節。
- * v1 の `hako_defaults` Cookie の置き換え。ログイン中ユーザーごとに 1 件保持する
+ * ログイン中ユーザーごとに 1 件保持する
  * (ゲームに依らない。tmp/18-games.md)。
  */
 export interface UserPrefs {

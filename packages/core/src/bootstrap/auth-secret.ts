@@ -1,7 +1,7 @@
 // better-auth の secret と CSRF トークンの HMAC 鍵 (auth secret) の解決。
-// Deploy to Cloudflare でデプロイ時に何も入力しなくて済むよう、`HAKONIWA_AUTH_SECRET` を
-// 任意にした。未設定なら初回起動時に強いランダム値を生成して settings 表に保存し、以後は
-// それを使い続ける。環境変数が設定されていれば常にそちらを優先する (後方互換)。
+// Deploy to Cloudflare でデプロイ時に何も入力しなくて済むよう、`HAKONIWA_AUTH_SECRET` は
+// 任意。未設定なら初回起動時に強いランダム値を生成して settings 表に保存し、以後は
+// それを使い続ける。環境変数が設定されていれば常にそちらを優先する。
 //
 // 注意: settings 表は migrate() で作られるため、呼び出し側 (buildDeps) は migrate 済みの
 // driver から作った SettingsRepository を渡すこと (Node の compose.ts、Workers の

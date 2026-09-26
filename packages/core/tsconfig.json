@@ -5,9 +5,8 @@
     "jsxImportSource": "hono/jsx",
     // ランタイム非依存 (node:*/cloudflare:* 禁止) のため、@types/node 等のアンビエント型を
     // 暗黙に取り込まない (node/cloudflare の tsconfig.json と同様の方針)。
-    // tmp/17-ogp.md 対応で CompressionStream/Response 等 Web 標準の型を使うようになり、
-    // @types/node の Buffer 拡張と Uint8Array<ArrayBufferLike> の不整合で型エラーになったため
-    // 追加 (設計書との差異)。
+    // CompressionStream/Response 等 Web 標準の型を使う箇所 (tmp/17-ogp.md) が、@types/node の
+    // Buffer 拡張と Uint8Array<ArrayBufferLike> の不整合で型エラーにならないようにする。
     "types": []
   },
   "include": ["src"]

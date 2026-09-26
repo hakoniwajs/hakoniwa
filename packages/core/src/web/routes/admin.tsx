@@ -162,7 +162,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     return renderAdmin(c, deps, "管理者を削除しました。");
   });
 
-  // tmp/18-games.md「ルート」節: 「新しいゲームを開始」。旧 POST /admin/init はこれに統合した。
+  // tmp/18-games.md「ルート」節: 「新しいゲームを開始」。
   app.post("/admin/games", async (c) => {
     requireAdmin(c);
     const body = await parseStringBody(c);
@@ -248,8 +248,8 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     return renderAdmin(c, deps, "ログイン方法の設定を変更しました。");
   });
 
-  // 追加: サイト設定 (タイトル・フッタ・追加 NG ワード・ローカル掲示板・タイムゾーン)。
-  // 以前は環境変数だったものを settings 表に保存する (app/site-settings.ts)。
+  // サイト設定 (タイトル・フッタ・追加 NG ワード・ローカル掲示板・タイムゾーン)。
+  // settings 表に保存する (app/site-settings.ts)。
   app.post("/admin/site-settings", async (c) => {
     requireAdmin(c);
     const body = await parseStringBody(c);
@@ -259,10 +259,9 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
   });
 
   // 追加: tmp/14-users-auth.md 「決定事項」6。特殊パスワードの代わりの資金・食料最大化。
-  // 設計書との差異: タスク指示は `POST /admin/islands/:id/maximize` (島の select + ボタン) だが、
-  // <select> だけで動的に POST 先の URL (path param) を変えるには JS が必要になる。
-  // owner.js のような座標選択専用スクリプトをここに広げるより、id をフォームの通常フィールドで
-  // 送る `POST /admin/maximize` (JS 不要) にした方が単純に動くため、こちらを採用した。
+  // 島は <select> で選ぶ。<select> だけで動的に POST 先の URL (path param) を変えるには JS が
+  // 必要になるため、`/admin/islands/:id/maximize` ではなく、id をフォームの通常フィールドで送る
+  // `POST /admin/maximize` (JS 不要) にしている。
   app.post("/admin/maximize", async (c) => {
     requireAdmin(c);
     const body = await parseStringBody(c);
