@@ -13,11 +13,19 @@
   // 依存更新時にこの日付も見直すこと)。
   "compatibility_date": "2026-08-22",
   // Workers Cache (https://developers.cloudflare.com/workers/cache/)。応答の Cache-Control に
-  // 従って Cloudflare 側が自動でキャッシュする (workers.dev でも有効)。tmp/17-ogp.md
-  // 「キャッシュ (Workers Cache)」節。Cache-Control の無い応答もヒューリスティックにキャッシュ
-  // されるため、web 層 (packages/core/src/web/app.tsx) の既定 no-store ミドルウェアとセットで使う。
+  // 従って Cloudflare 側が自動でキャッシュする (workers.dev でも有効)。キャッシュキーは
+  // 「エントリポイント + パスとクエリ + ctx.props + Worker のバージョン」。
+  // `exports` でエントリポイントごとに有効/無効を切り替える (Issue #25):
+  // - default (Gateway): 無効。毎回実行し、キャッシュしてよいリクエストだけを CachedPages へ渡す。
+  // - CachedPages: 有効。DO へ転送した応答を Cache-Control に従ってキャッシュする。
+  // Cache-Control の無い応答もヒューリスティックにキャッシュされるため、web 層
+  // (packages/core/src/web/app.tsx) の既定 no-store ミドルウェアとセットで使う。
   "cache": {
     "enabled": true,
+  },
+  "exports": {
+    "default": { "type": "worker", "cache": { "enabled": false } },
+    "CachedPages": { "type": "worker", "cache": { "enabled": true } },
   },
   // packages/core/public (images/style.css/owner.js) を Worker より先に配信する。
   "assets": {
