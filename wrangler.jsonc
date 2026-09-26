@@ -32,7 +32,7 @@
   // キャッシュする KV 名前空間。**アプリ側では省略可能** (env.SNAPSHOT が無ければ worker.ts は
   // 常に DO へ転送するので、KV が無くても壊れない)。ただし実際にデプロイするには Cloudflare
   // 側に存在する KV 名前空間の id が必要 (`wrangler kv namespace create SNAPSHOT` で作成し、
-  // 返ってきた id を `"id": "..."` としてここに追加する。docs/setup-guide.md 参照)。
+  // 返ってきた id を `"id": "..."` としてここに追加する。https://hakoniwajs.github.io/hakoniwa/setup/kv-cache/ 参照)。
   // id を書いていない状態でも `wrangler deploy --dry-run` とローカルテストは通る
   // (@cloudflare/vitest-pool-workers の miniflare は id が無くてもローカルに KV を用意する) が、
   // 実際のデプロイには id が必要になる想定なので、デプロイ前に必ず追加すること。

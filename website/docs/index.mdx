@@ -1,0 +1,138 @@
+---
+title: 箱庭諸島２ TypeScript 版
+description: 懐かしの Web ブラウザゲーム「箱庭諸島２」を TypeScript で書き直しました。Cloudflare にボタンひとつで、自分だけの箱庭諸島を設置できます。
+sidebar:
+  label: はじめに
+---
+
+export const tiles = {
+  ".": ["land0", "海"],
+  s: ["land14", "海(浅瀬)"],
+  w: ["land1", "荒地"],
+  p: ["land2", "平地"],
+  v: ["land3", "村"],
+  t: ["land4", "町"],
+  c: ["land5", "都市"],
+  f: ["land6", "森"],
+  a: ["land7", "農場"],
+  k: ["land8", "工場"],
+  b: ["land10", "防衛施設"],
+  m: ["land11", "山"],
+  o: ["land16", "海底油田"],
+  M: ["monster0", "怪獣いのら"],
+};
+
+export const islandMap = [
+  "............",
+  "....ssss....",
+  "..ssfmmfss..",
+  ".sfvtaapfs..",
+  ".spcckavws..",
+  "..sftcfabs.o",
+  ".sspptfps...",
+  "...sffMs....",
+  "....sss.....",
+  "............",
+];
+
+<div style={{ display: "flex", justifyContent: "center", margin: "1.5rem 0" }}>
+  <div
+    role="img"
+    aria-label="箱庭諸島２の島の地図の例。海に囲まれた島に、森・山・農場・工場・町・都市が並んでいる"
+    style={{
+      "--tile": "min(32px, calc((100vw - 3rem) / 12.5))",
+      lineHeight: 0,
+      border: "1px solid var(--blume-border, #ccc)",
+      background: "#1e5aa8",
+    }}
+  >
+    {islandMap.map((row, y) => (
+      <div key={y} style={{ whiteSpace: "nowrap", paddingLeft: y % 2 === 0 ? "calc(var(--tile) / 2)" : 0, paddingRight: y % 2 === 1 ? "calc(var(--tile) / 2)" : 0 }}>
+        {[...row].map((ch, x) => (
+          <img
+            key={x}
+            src={`images/${tiles[ch][0]}.gif`}
+            alt=""
+            title={tiles[ch][1]}
+            width={32}
+            height={32}
+            style={{ display: "inline-block", width: "var(--tile)", height: "var(--tile)", margin: 0, borderRadius: 0, imageRendering: "pixelated" }}
+          />
+        ))}
+      </div>
+    ))}
+  </div>
+</div>
+
+**箱庭諸島２** は、徳岡宏樹氏が 1990 年代末に公開した Web ブラウザゲームです。プレイヤーはそれぞれ自分の島を発見し、整地・植林・農場や工場の建設・ミサイル発射といった「開発計画」を登録します。一定時間ごとにターンが進み、すべての島で計画の実行、人口の増減、災害、怪獣の出現などが一斉に処理されます。
+
+このプロジェクトは、オリジナルの Perl CGI を **TypeScript で書き直した移植版** です。ゲームのルールはオリジナル (ver2.3) のまま、今のインフラで手軽に動かせるようにしました。
+
+<Card
+  title="Cloudflare にワンクリックで設置する"
+  href="/setup/cloudflare"
+  icon="rocket"
+  cta="設置ガイドを読む"
+  arrow
+>
+  必要なのは Cloudflare のアカウントだけ。サーバーの用意も、データベースの準備もいりません。
+</Card>
+
+## ボタンひとつで、自分の箱庭諸島を
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hakoniwajs/template-cloudflare)
+
+箱庭諸島を設置するには、かつては Perl が動くレンタルサーバーを借り、CGI のパーミッションを設定し……という手間がかかりました。TypeScript 版は **Cloudflare Workers** と **Durable Objects (SQLite)** の上で動くので、上の「Deploy to Cloudflare」ボタンを押すだけで、ゲーム本体・データベース・ターン進行 (Cron) がまとめて自分の Cloudflare アカウントに用意されます。
+
+<Steps>
+  <Step title="Deploy to Cloudflare ボタンを押す">
+    GitHub と Cloudflare のアカウントで連携すると、テンプレートリポジトリが自分のアカウントにコピーされます。デプロイ画面で秘密鍵と管理者のメールアドレスを入力して、デプロイを実行します。
+  </Step>
+  <Step title="公開された URL を開いてログインする">
+    `https://<名前>.<サブドメイン>.workers.dev` でゲームが公開されます。管理者のメールアドレスでログインします。
+  </Step>
+  <Step title="管理画面からゲームを開始する">
+    `/admin` の「新しいゲームを開始」を押せば、あとは 6 時間 (設定で変更可) ごとにターンが自動で進みます。
+  </Step>
+</Steps>
+
+Workers の無料プランの範囲でも、身内で遊ぶ程度の規模なら十分に動かせます。詳しくは [Cloudflare にデプロイする](/setup/cloudflare) を参照してください。
+
+## 特徴
+
+<CardGroup cols={2}>
+  <Card title="オリジナルのルールを再現" icon="map">
+    箱庭諸島 ver2.3 のルール (計画・災害・怪獣・記念碑・賞など) を移植しています。画像もオリジナルのものを同梱しています。
+  </Card>
+  <Card title="パスワード不要のログイン" icon="key">
+    X (Twitter)・Discord・メール (マジックリンク) でログインできます。1 つのアカウントに複数の方法を連携することもできます。
+  </Card>
+  <Card title="シーズン制と過去のゲーム" icon="calendar">
+    開始日時・最終ターン・1 ターンの長さを設定できます。終わったゲームは結果発表として読み取り専用で残り、次のゲームを始められます。
+  </Card>
+  <Card title="シェアしたくなる OGP 画像" icon="image">
+    島のページを SNS でシェアすると、その島の地図を描いた画像がプレビューに表示されます。
+  </Card>
+  <Card title="スマートフォン対応" icon="smartphone">
+    スマートフォンの画面幅でも、計画の入力や掲示板への記帳ができます。
+  </Card>
+  <Card title="Node.js でも動く" icon="server">
+    ゲームロジックはランタイムから独立しています。`npx hakoniwa serve` で、自前のサーバーでも同じゲームを動かせます。
+  </Card>
+</CardGroup>
+
+## 設置方法を選ぶ
+
+| 方法 | こんな方に | 必要なもの |
+| --- | --- | --- |
+| [Cloudflare にワンクリックでデプロイ](/setup/cloudflare) | **まずはこれ。** いちばん簡単 | Cloudflare と GitHub のアカウント |
+| [Cloudflare に手動でデプロイ](/setup/cloudflare-manual) | 設定をコードで管理したい | Node.js、Wrangler |
+| [Node.js で自前のサーバーに設置](/setup/node) | VPS や自宅サーバーで動かしたい | Node.js 22.13 以降 |
+
+## このプロジェクトについて
+
+- ソースコード: [hakoniwajs/hakoniwa](https://github.com/hakoniwajs/hakoniwa)
+- npm パッケージ: [`@hakoniwajs/cloudflare`](https://www.npmjs.com/package/@hakoniwajs/cloudflare)、[`@hakoniwajs/node`](https://www.npmjs.com/package/@hakoniwajs/node)、[`@hakoniwajs/core`](https://www.npmjs.com/package/@hakoniwajs/core)
+- [neguse/hakoniwa](https://github.com/neguse/hakoniwa) (オリジナルの Perl スクリプトを現代の Perl で動くよう整備したもの) の fork から始まりました
+
+オリジナルの作者の方々への謝辞と、画像・スクリプトの利用条件は [クレジットとライセンス](/credits) にまとめています。

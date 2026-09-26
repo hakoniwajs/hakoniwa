@@ -1,0 +1,26 @@
+---
+title: URL 構成
+description: ゲームの各ページの URL の一覧です。
+sidebar:
+  label: URL 構成
+---
+
+ゲームに関するページはすべて `/games/:gameId/` の配下にあり、URL だけでどのゲームを見ているかがわかります。
+
+| メソッド | パス | 内容 |
+| --- | --- | --- |
+| GET | `/` | 現在のゲームのトップへ移動します。ゲームが無ければ「ゲームはまだ開始されていません」画面 (管理者には `/admin` への案内) |
+| GET | `/games` | ゲーム一覧 (名前・開始・終了・ターン数・島数・状態) |
+| GET | `/games/:gameId` | そのゲームのトップ (順位表・出来事・発見の記録)。過去のゲームは「結果発表」表示 |
+| POST | `/games/:gameId/islands` | 島の作成 (現在のゲームのみ) |
+| GET | `/games/:gameId/islands/:id` | 観光 |
+| GET | `/games/:gameId/islands/:id/ogp.png` | OGP 画像 (800×420 の PNG) |
+| POST | `/games/:gameId/islands/:id/lbbs` | 掲示板への記帳 (現在のゲームのみ。終了後も記帳できます) |
+| GET | `/games/:gameId/my-island` | 自分の島の開発画面 (過去のゲームは読み取り専用) |
+| POST | `/games/:gameId/my-island/commands` など | 計画・コメント・島名の変更、掲示板の削除 (現在のゲームのみ) |
+| POST | `/games/:gameId/my-island/abandon` | 島の放棄 (現在のゲームのみ) |
+| GET | `/my-island`、`/islands/:id`、`/islands/:id/ogp.png` | ゲーム ID を含まない旧 URL。現在のゲームの同じページへ移動します |
+
+`/login`、`/account`、`/admin` はゲームに依存しないページです。
+
+島のページの OGP 画像の URL には、現在のターン (`?turn=N`) が付きます。ターンが進むと URL が変わるので、SNS 側のキャッシュも新しい地図に更新されます。

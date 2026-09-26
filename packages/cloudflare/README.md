@@ -40,7 +40,7 @@ export default createWorker();
 }
 ```
 
-`HAKONIWA_AUTH_SECRET` などの秘密情報は `wrangler secret put <NAME>` で登録してください。設定項目の一覧は [docs/setup-guide.md](https://github.com/hakoniwajs/hakoniwa/blob/main/docs/setup-guide.md) を参照してください。
+`HAKONIWA_AUTH_SECRET` などの秘密情報は `wrangler secret put <NAME>` で登録してください。設定項目の一覧は [環境変数一覧](https://hakoniwajs.github.io/hakoniwa/setup/environment-variables/) を参照してください。
 
 ## API
 

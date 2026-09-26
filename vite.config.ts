@@ -11,6 +11,8 @@ const nonTypeScriptAssetPatterns = [
   // tmp/17-ogp.md: generate-ogp-tiles.ts の生成物 (GIF タイルのパレット/インデックス)。
   // 手で編集しないため fmt/lint の対象から外す。
   "packages/core/src/ogp/tiles.generated.ts",
+  // ドキュメントサイト (Blume)。pnpm workspace の外で npm 管理しており、依存も別。
+  "website/**",
 ];
 
 export default defineConfig({

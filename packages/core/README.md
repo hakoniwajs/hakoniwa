@@ -7,7 +7,7 @@
 - Node.js で動かす → [`@hakoniwajs/node`](https://www.npmjs.com/package/@hakoniwajs/node)
 - Cloudflare Workers で動かす → [`@hakoniwajs/cloudflare`](https://www.npmjs.com/package/@hakoniwajs/cloudflare)
 
-独自ランタイムへ組み込む場合は `createApp` / `WebDeps` / `composeNode` に相当する組み立て (`bootstrap/`) と `SqlDriver` などのストレージ実装を用意してください。詳しくは [docs/development.md](https://github.com/hakoniwajs/hakoniwa/blob/main/docs/development.md) を参照してください。
+独自ランタイムへ組み込む場合は `createApp` / `WebDeps` / `composeNode` に相当する組み立て (`bootstrap/`) と `SqlDriver` などのストレージ実装を用意してください。詳しくは [開発者向けドキュメント](https://hakoniwajs.github.io/hakoniwa/development/) を参照してください。
 
 ## License
 

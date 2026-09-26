@@ -1,0 +1,27 @@
+---
+title: バックアップ
+description: ゲームのデータをバックアップし、必要なときに復元する方法です。
+sidebar:
+  label: バックアップ
+---
+
+管理画面の「バックアップ」から、バックアップの一覧表示・作成・復元・削除ができます。操作方法は Cloudflare 版と Node.js 版で共通ですが、保存の仕組みが異なります。
+
+<Tabs>
+  <Tab title="Cloudflare">
+    Durable Objects (SQLite) の **Point-in-Time Recovery** を使います。バックアップを作成すると、その時点のブックマークが保存され、あとからその時点の状態に巻き戻せます。
+
+    復元すると Durable Object が再起動するため、「復元を予約しました。数秒後に再読み込みしてください」という案内が表示されます。数秒待ってからページを再読み込みしてください。
+
+    Point-in-Time Recovery で戻せるのは過去 30 日以内の時点です。
+  </Tab>
+  <Tab title="Node.js">
+    `HAKONIWA_BACKUP_DIR` (既定 `./data/backups`) に、データベースのコピーをファイルとして保存します。CLI の `backup list|create|restore|delete` からも操作できます。
+
+    ファイルなので、別のストレージへのコピーなども自由に行えます。
+  </Tab>
+</Tabs>
+
+:::warning
+Cloudflare 版で [KV スナップショットキャッシュ](/setup/kv-cache) を使っている場合、復元前の内容が最大 TTL の分だけ未ログインの閲覧者に表示されることがあります。
+:::

@@ -1,0 +1,17 @@
+{
+  "name": "hakoniwa-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "preview": "blume preview",
+    "validate": "blume validate"
+  },
+  "devDependencies": {
+    "blume": "2.0.3"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

@@ -1,0 +1,43 @@
+---
+title: KV スナップショットキャッシュ
+description: 未ログインのトップページ・観光ページを Workers KV にキャッシュして表示を速くする、Cloudflare 版の任意の機能です。
+sidebar:
+  label: KV キャッシュ (任意)
+---
+
+Cloudflare 版では、未ログインのトップページ (`GET /games/:gameId`) と観光ページ (`GET /games/:gameId/islands/:id`) の表示内容を Workers KV にキャッシュすることで、Durable Object への往復を省略できます。**設定しなくても動作します** (KV 名前空間が設定されていなければ、Worker は常に Durable Object に問い合わせます)。
+
+ログイン中のプレイヤーには常に最新の内容が表示されます。キャッシュされるのは未ログインの閲覧だけで、最大で TTL の分だけ古い内容が表示されることがあります。
+
+## 有効にする
+
+KV 名前空間を作成します。
+
+```sh
+npx wrangler kv namespace create SNAPSHOT
+```
+
+出力された `id` を `wrangler.jsonc` の `kv_namespaces` に追加します。
+
+```jsonc wrangler.jsonc
+"kv_namespaces": [{ "binding": "SNAPSHOT", "id": "ここに出力された id を貼る" }],
+```
+
+再デプロイ (`npx wrangler deploy`、またはリポジトリへの push) すれば有効になります。
+
+## TTL
+
+TTL は環境変数で変更できます。既定値のままで問題なければ設定は不要です。
+
+| 環境変数 | 既定値 | 用途 |
+| --- | --- | --- |
+| `HAKONIWA_SNAPSHOT_TTL_SEC` | `60` | 進行中・開始前のゲームのページと、終了済みの島ページ (掲示板の記帳が入りうるため)。Workers KV の最小 TTL が 60 秒のため、これ未満を指定しても 60 秒になります |
+| `HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` | `2592000` (30 日) | 過去のゲームのページと、終了済みのゲームのトップページ (二度と変わらないため長期) |
+
+進行中のゲームでは、次のターンまでの残り時間が短期 TTL より短ければ、そちらが優先されます。
+
+:::warning
+管理者がバックアップから過去のデータを復元した場合、復元前の内容が最大 TTL の分だけキャッシュに残ることがあります (このキャッシュには削除の仕組みがありません)。復元直後の古い表示が気になる場合は、TTL を短くしてから復元してください。
+:::
+
+仕組みの詳細は [キャッシュの仕組み](/development/cache) を参照してください。

@@ -1,0 +1,40 @@
+---
+title: 設置方法の選び方
+description: 箱庭諸島２ TypeScript 版を設置する 3 つの方法と、それぞれに必要なものを紹介します。
+sidebar:
+  label: 概要
+---
+
+箱庭諸島２ TypeScript 版は、次の 3 つの方法で設置できます。どれも同じゲーム本体 (`@hakoniwajs/core`) を使うので、遊べる内容は変わりません。
+
+<CardGroup cols={3}>
+  <Card title="Cloudflare (ワンクリック)" href="/setup/cloudflare" icon="rocket" cta="おすすめ">
+    Deploy to Cloudflare ボタンを押すだけ。サーバーもデータベースも用意不要です。
+  </Card>
+  <Card title="Cloudflare (手動)" href="/setup/cloudflare-manual" icon="terminal">
+    Wrangler で自分の Worker プロジェクトとしてデプロイします。設定をコードで管理できます。
+  </Card>
+  <Card title="Node.js" href="/setup/node" icon="server">
+    `npx hakoniwa serve` で HTTP サーバーを起動します。VPS や自宅サーバー向けです。
+  </Card>
+</CardGroup>
+
+## どれを選べばいい？
+
+迷ったら **[Cloudflare にワンクリックでデプロイ](/setup/cloudflare)** を選んでください。
+
+- **サーバーの管理が不要**: Cloudflare Workers はサーバーレスなので、OS の更新やプロセスの監視は必要ありません。
+- **データベースも自動で用意される**: ゲームのデータは Durable Objects の SQLite ストレージに保存されます。別途データベースを契約する必要はありません。
+- **ターンは自動で進む**: Cron Trigger が 15 分ごとにターンの進行を確認するので、誰もアクセスしていなくてもターンが進みます。
+- **バックアップもできる**: Durable Objects の Point-in-Time Recovery を使って、管理画面から過去の時点に巻き戻せます。
+- **無料で始められる**: Workers の無料プランでも、仲間内で遊ぶ規模なら十分に動かせます。
+
+自前のサーバーで動かしたい、データベースファイルを手元に置いておきたいといった場合は [Node.js 版](/setup/node) を使ってください。
+
+## 設置したあとにやること
+
+どの方法でも、設置後の流れは同じです。
+
+1. 管理者としてログインする ([ログイン方法の設定](/setup/login-methods))
+2. 管理画面 (`/admin`) で「新しいゲームを開始」する ([管理画面](/operation/admin))
+3. 必要に応じて X / Discord ログインを追加し、プレイヤーを招待する

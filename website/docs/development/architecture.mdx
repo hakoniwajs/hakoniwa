@@ -1,0 +1,42 @@
+---
+title: 内部の仕組み
+description: ターン進行の排他制御、島の放棄、OGP 画像の生成など、実装の要点を説明します。
+sidebar:
+  label: 内部の仕組み
+---
+
+## ターン進行
+
+ターンは「最終更新時刻から 1 ターン分の時間が経過しているか」で判定します。判定はリクエスト時 (turn-check ミドルウェア) に行われるほか、次の経路でも進みます。
+
+- **Node.js サーバー**: `HAKONIWA_TURN_CHECK_INTERVAL_SEC` (既定 60 秒) 間隔のタイマー
+- **Cloudflare Workers**: `wrangler.jsonc` の `triggers.crons` (既定 `*/15 * * * *`) から Worker の `scheduled` ハンドラが呼ばれ、DO の RPC `checkTurn()` (`turnService.advanceTurnIfDue`) を実行します。ターンを進めるべきかどうかは DB に保存された 1 ターンの長さと最終更新時刻から判定するため、Cron 側はターンの境界を意識しません
+
+### 二重進行の防止
+
+リクエスト時の判定と Cron / タイマーが同時に走っても、ターンは二重に進みません。
+
+- 1 ターン分の処理 (`TurnService.#advanceOnce`) は `await` を含まない同期処理として、リポジトリの 1 トランザクション内で実行されます
+- ゲームの状態更新は `tryBumpTurn` (`UPDATE games ... WHERE id = ? AND turn = ?`) の楽観ロックで、進行前のターン番号を条件にします。先に進めた側が勝ち、負けた側はロールバックして何もしません
+- Cloudflare Workers では Durable Object 自体が単一スレッドで、`transactionSync` の中で同期的に完結するため、そもそも 2 つのトリガーが同時に同じ DO で処理されることはありません
+
+## 島の放棄
+
+開発画面の「島を放棄する」(`POST /games/:gameId/my-island/abandon`) で、`islands.abandoned_at` が記録され、町のヘックスは荒地に、計画はすべて資金繰りに戻ります。
+
+- 所有判定 (`findIslandByOwner`) は放棄されていない島だけを返すため、放棄直後から新しい島を作成できます
+- 放棄島はターン処理の収入・計画・成長・災害の各フェーズをスキップし、ターン末の死滅判定で除去されます (ログは「放棄され、無人島になりました」)
+- 放棄回数は `GameConfig.maxAbandonsPerGame` (既定 3) までで、`abandonments` 表に (game_id, user_id) ごとに記録が残ります
+
+## OGP 画像
+
+島のページの `og:image` は `GET /games/:gameId/islands/:id/ogp.png` (800×420 の PNG) です。
+
+- 地図は観光者向けの表示 (ミサイル基地→森、海底基地→海、ハリボテ→防衛施設に見える偽装ルールを含む) をそのまま敷き詰めたもので、文字は描画しません。島名やターン・人口・面積・順位は `og:title`/`og:description` に載せます
+- 外部サービスやネイティブライブラリを使わず、`packages/core/src/ogp/` の純粋な TypeScript (自前の PNG エンコーダ + 事前生成したタイル画像データ) で毎回組み立てます
+- 画像の URL には現在のターン (`?turn=N`) を付け、ターンが進むと URL が変わるようにしています
+
+## バックアップ
+
+- **Node.js**: `HAKONIWA_BACKUP_DIR` 配下にファイルとしてバックアップを作成・復元・削除します
+- **Cloudflare Workers**: SQLite backend の DO が持つ Point-in-Time Recovery のブックマークを使います。`restore` は DO を再起動する (`ctx.abort()`) ため、実行後は再読み込みを促す案内を表示します

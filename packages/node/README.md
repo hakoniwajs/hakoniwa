@@ -33,7 +33,7 @@ $ npx hakoniwa backup list|create|restore|delete
 | `HAKONIWA_ADMIN_EMAILS` | 管理者ユーザーのメールアドレス (カンマ区切り)                            |
 | `HAKONIWA_DEV_LOGIN`    | `true` で開発ログインを有効化 (本番では `false`)                         |
 
-全項目は [docs/setup-guide.md](https://github.com/hakoniwajs/hakoniwa/blob/main/docs/setup-guide.md) を参照してください。
+全項目は [環境変数一覧](https://hakoniwajs.github.io/hakoniwa/setup/environment-variables/) を参照してください。
 
 ## License
 

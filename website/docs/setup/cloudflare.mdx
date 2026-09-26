@@ -1,0 +1,81 @@
+---
+title: Cloudflare にワンクリックでデプロイする
+description: Deploy to Cloudflare ボタンで、箱庭諸島２を自分の Cloudflare アカウントに設置します。いちばん簡単な方法です。
+sidebar:
+  label: Cloudflare (ワンクリック)
+  badge: おすすめ
+---
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hakoniwajs/template-cloudflare)
+
+いちばん手軽な方法です。ボタンを押すと、テンプレートリポジトリ [hakoniwajs/template-cloudflare](https://github.com/hakoniwajs/template-cloudflare) が自分の GitHub アカウントにコピーされ、Cloudflare Workers にデプロイされます。コマンドラインの操作は必要ありません。
+
+## 必要なもの
+
+- [Cloudflare のアカウント](https://dash.cloudflare.com/sign-up) (無料プランで構いません)
+- GitHub のアカウント (テンプレートリポジトリのコピー先)
+
+デプロイされるものは次のとおりです。すべて Cloudflare 側で自動的に作られます。
+
+| リソース | 用途 |
+| --- | --- |
+| Worker | ゲーム本体 (画面・API・OGP 画像) |
+| Durable Object (SQLite) | ゲームのデータ (島・ログ・ユーザー・設定) |
+| Cron Trigger (15 分ごと) | ターンの進行 |
+| Static Assets | 地形の画像や CSS |
+
+## 手順
+
+<Steps>
+  <Step title="Deploy to Cloudflare ボタンを押す">
+    上のボタンを押すと Cloudflare のダッシュボードに移動します。GitHub と連携し、テンプレートリポジトリをコピーする先 (自分のアカウントやリポジトリ名) を選びます。
+  </Step>
+  <Step title="秘密鍵と管理者のメールアドレスを入力する">
+    変数・secret の入力画面が表示されるので、最低限次の 2 つを入力します。
+
+    - `HAKONIWA_AUTH_SECRET`: ログインのセッションなどに使う秘密鍵です。`openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列を入力します
+    - `HAKONIWA_ADMIN_EMAILS`: 管理者にするメールアドレスです。X ログインはメールアドレスを返さないため、Discord ログインかメールログインで使うアドレスを指定してください
+
+    その他の項目 (サイト名やフッタの表示など) は、あとから変更できます。
+  </Step>
+  <Step title="デプロイを実行する">
+    デプロイが完了すると、`https://<名前>.<サブドメイン>.workers.dev` 形式の公開 URL が表示されます。
+  </Step>
+  <Step title="管理者としてログインする">
+    公開 URL の `/login` を開き、「メールでログイン」に手順 2 で指定したメールアドレスを入力します。
+
+    メール送信サービス ([Resend](https://resend.com/)) をまだ設定していない場合、メールは送信されず、**ログイン用のリンクが Worker のログに出力されます**。Cloudflare ダッシュボードで当該 Worker の「Logs」(リアルタイムログ) を開くか、`npx wrangler tail` を実行してリンクを確認し、ブラウザで開いてください。
+  </Step>
+  <Step title="ゲームを開始する">
+    `/admin` を開き、「新しいゲームを開始」でゲームを始めます。ゲーム名・開始日時・最終ターン・1 ターンの長さを指定できます (すべて省略可能)。
+  </Step>
+</Steps>
+
+これでプレイヤーが島を発見できる状態になりました。公開 URL を仲間に共有しましょう。
+
+## プレイヤー向けのログイン方法を用意する
+
+プレイヤーにログインしてもらうには、次のいずれかを設定します。
+
+- **Discord / X (Twitter) ログイン**: 仲間内で遊ぶならいちばん手軽です。各サービスの開発者ポータルでアプリを作り、クライアント ID と secret を Worker に登録します
+- **メールログイン**: [Resend](https://resend.com/) の API キーを登録すると、実際にログイン用のメールが送られるようになります
+
+手順は [ログイン方法の設定](/setup/login-methods) を参照してください。
+
+## 設定を変更する
+
+Worker の設定 (環境変数と secret) は、Cloudflare ダッシュボードの当該 Worker の「Settings → Variables and Secrets」から変更できます。設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
+
+コピーされたテンプレートリポジトリの `wrangler.jsonc` を編集して push すれば、Workers Builds により自動で再デプロイされます。
+
+:::note
+カスタムドメインを使う場合だけ、`HAKONIWA_BASE_URL` にそのドメインの URL を設定してください。`workers.dev` の URL のまま使う場合は設定不要です (リクエストから自動で判定されます)。
+:::
+
+## アップデート
+
+新しいバージョンの `@hakoniwajs/cloudflare` が公開されたら、コピーしたリポジトリの `package.json` の依存バージョンを上げて push してください。Workers Builds が再デプロイします。データベースのスキーマは起動時に自動でマイグレーションされます。
+
+## 表示を速くする (任意)
+
+未ログインのトップページや観光ページを Workers KV にキャッシュして、表示を速くできます。設定しなくても動作に問題はありません。[KV スナップショットキャッシュ](/setup/kv-cache) を参照してください。

@@ -2,6 +2,8 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hakoniwajs/template-cloudflare)
 
+📖 **ドキュメント: https://hakoniwajs.github.io/hakoniwa/**
+
 徳岡宏樹氏による Web ブラウザゲーム「箱庭諸島２」を、TypeScript (Node.js + Hono + `node:sqlite`) で書き直したものです。
 ゲームロジックと HTTP 層をランタイムから独立させてあり、Node.js と Cloudflare Workers (Durable Objects SQLite) の両方で動かせる構成にしています。
 
@@ -32,12 +34,15 @@
 | `@hakoniwajs/cloudflare` | Cloudflare Workers (Durable Objects) 版。Worker エントリを提供します |
 | `@hakoniwajs/core`       | ランタイム非依存のゲーム本体 (上の 2 つが依存しています)             |
 
-設置手順は [設置ガイド](docs/setup-guide.md) を参照してください。Cloudflare Workers へは上の Deploy ボタン (テンプレート: [hakoniwajs/template-cloudflare](https://github.com/hakoniwajs/template-cloudflare)) からもデプロイできます。
+設置手順は [設置ガイド](https://hakoniwajs.github.io/hakoniwa/setup/) を参照してください。Cloudflare Workers へは上の Deploy ボタン (テンプレート: [hakoniwajs/template-cloudflare](https://github.com/hakoniwajs/template-cloudflare)) からもデプロイできます。
 
 ## ドキュメント
 
-- 自分の環境にデプロイ・設置する方は [設置ガイド](docs/setup-guide.md) を参照してください。
-- 開発に参加する方は [開発者向けドキュメント](docs/development.md) を参照してください。
+ドキュメントは [https://hakoniwajs.github.io/hakoniwa/](https://hakoniwajs.github.io/hakoniwa/) で公開しています (ソースは [`website/`](website/)。[Blume](https://useblume.dev/) でビルドしています)。
+
+- 自分の環境にデプロイ・設置する方は [設置ガイド](https://hakoniwajs.github.io/hakoniwa/setup/) を参照してください。
+- 管理画面や CLI の使い方は [運営する](https://hakoniwajs.github.io/hakoniwa/operation/admin/) を参照してください。
+- 開発に参加する方は [開発者向けドキュメント](https://hakoniwajs.github.io/hakoniwa/development/) を参照してください。
 
 ## ライセンス
 

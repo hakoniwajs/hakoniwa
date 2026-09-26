@@ -1,0 +1,78 @@
+---
+title: ログイン方法の設定
+description: X (Twitter)・Discord・メール (マジックリンク) の各ログイン方法を有効にする手順です。
+sidebar:
+  label: ログイン方法
+---
+
+箱庭諸島２ TypeScript 版では、オリジナルのパスワードの代わりに、外部サービスやメールでログインします。プレイヤーは 1 つのアカウントに複数のログイン方法を連携できます (アカウント設定画面 `/account` から)。
+
+| 方法 | 必要な設定 | メールアドレス |
+| --- | --- | --- |
+| Discord | `HAKONIWA_DISCORD_CLIENT_ID` / `HAKONIWA_DISCORD_CLIENT_SECRET` | 取得できる |
+| X (Twitter) | `HAKONIWA_X_CLIENT_ID` / `HAKONIWA_X_CLIENT_SECRET` | **取得できない** |
+| メール (マジックリンク) | `HAKONIWA_RESEND_API_KEY` (任意) | 取得できる |
+
+設定済みの方法は、管理画面の「ログイン方法」からそれぞれ ON/OFF を切り替えられます。
+
+:::warning
+管理者はメールアドレスで判定します (`HAKONIWA_ADMIN_EMAILS`)。X ログインはメールアドレスを返さないため、**管理者のアカウントは Discord ログインかメールログインで使えるようにしておいてください。**
+:::
+
+以下の `<公開 URL>` は、Cloudflare なら `https://<名前>.<サブドメイン>.workers.dev`、ローカル開発なら `http://localhost:5173` のように、ゲームを開く URL に置き換えてください。
+
+## Discord ログイン
+
+<Steps>
+  <Step title="Discord のアプリを作る">
+    [Discord Developer Portal](https://discord.com/developers/applications) で「New Application」からアプリを作成します。
+  </Step>
+  <Step title="コールバック URL を登録する">
+    「OAuth2」の「Redirects」に `<公開 URL>/api/auth/callback/discord` を追加します。
+  </Step>
+  <Step title="クライアント ID と secret を登録する">
+    「OAuth2」に表示される Client ID と Client Secret を、それぞれ `HAKONIWA_DISCORD_CLIENT_ID` と `HAKONIWA_DISCORD_CLIENT_SECRET` として登録します。
+  </Step>
+</Steps>
+
+## X (Twitter) ログイン
+
+<Steps>
+  <Step title="X のアプリを作る">
+    [X Developer Portal](https://developer.x.com/) でプロジェクトとアプリを作成し、「User authentication settings」で OAuth 2.0 を有効にします (アプリの種類は Web App)。
+  </Step>
+  <Step title="コールバック URL を登録する">
+    「Callback URI / Redirect URL」に `<公開 URL>/api/auth/callback/twitter` を登録します。
+  </Step>
+  <Step title="クライアント ID と secret を登録する">
+    OAuth 2.0 の Client ID と Client Secret を、それぞれ `HAKONIWA_X_CLIENT_ID` と `HAKONIWA_X_CLIENT_SECRET` として登録します。
+  </Step>
+</Steps>
+
+## メールログイン
+
+メールアドレスを入力すると、ログイン用のリンク (マジックリンク) が届く方式です。
+
+- **[Resend](https://resend.com/) の API キーを登録した場合**: 実際にメールが送信されます。`HAKONIWA_RESEND_API_KEY` に API キーを、`HAKONIWA_MAIL_FROM` に送信元アドレス (Resend で認証したドメインのもの) を設定してください
+- **登録していない場合**: メールは送信されず、ログイン用のリンクがサーバーのログ (Cloudflare なら Worker の Logs や `wrangler tail`、Node.js なら標準出力) に出力されるだけです。設置直後に管理者がログインするときに使えます
+
+## 登録先
+
+<Tabs>
+  <Tab title="Cloudflare (ダッシュボード)">
+    Cloudflare ダッシュボードで当該 Worker を開き、「Settings → Variables and Secrets」から **Secret** として追加します。保存すると自動で反映されます。
+  </Tab>
+  <Tab title="Cloudflare (Wrangler)">
+    ```sh
+    npx wrangler secret put HAKONIWA_DISCORD_CLIENT_ID
+    npx wrangler secret put HAKONIWA_DISCORD_CLIENT_SECRET
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    環境変数 (または `.env`) に設定し、サーバーを再起動します。
+  </Tab>
+</Tabs>
+
+## 開発ログイン
+
+`HAKONIWA_DEV_LOGIN=true` にすると、任意のメールアドレスを入力するだけでログインできる「開発ログイン」が有効になります。ローカル開発や検証のための機能です。**本番では絶対に有効にしないでください。**

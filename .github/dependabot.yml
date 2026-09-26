@@ -4,6 +4,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # ドキュメントサイト (website/) は pnpm workspace の外で npm 管理している
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,0 +1,30 @@
+---
+title: テストと静的検査
+description: Vitest によるテストと、vp によるフォーマット・lint・型チェックの実行方法です。
+sidebar:
+  label: テストと静的検査
+---
+
+```sh
+vp test    # Vitest (packages/cloudflare 以外)
+vp check   # フォーマット、lint、型チェック (packages/cloudflare を含む全パッケージ)
+vp fmt     # フォーマットの自動修正
+```
+
+CI (`.github/workflows/ci.yml`) では `pnpm run ci` (lint + check + test + build) と、次の Cloudflare 版のテストを実行しています。
+
+## `packages/cloudflare` のテスト
+
+`packages/cloudflare` のテストは `@cloudflare/vitest-pool-workers` (workerd 上で実行する Vitest プール) を使っています。`vp test` が内蔵する Vitest とは別のインスタンスが必要なため、`vp test` の集約実行からは除外しています (`vite.config.ts` の `test.projects`)。単体では次のコマンドで実行できます。
+
+```sh
+pnpm --filter @hakoniwajs/cloudflare test
+```
+
+## OGP タイル画像の生成
+
+OGP 画像のタイル画像データ (`packages/core/src/ogp/`) は、事前に生成したものをコミットしています。元の画像 (`packages/core/public/images`) を差し替えた場合は、次のコマンドで再生成してください。
+
+```sh
+pnpm --filter @hakoniwajs/core generate:ogp-tiles
+```

@@ -1,0 +1,37 @@
+---
+title: キャッシュの仕組み
+description: Workers Cache と既定の no-store 方針、画像の長期キャッシュ、KV スナップショットキャッシュの実装を説明します。
+sidebar:
+  label: キャッシュの仕組み
+---
+
+## Workers Cache と `no-store` の方針
+
+Cloudflare Workers 版は、Cache API (`caches.default`) を自前で呼ぶ代わりに、[Workers Cache](https://developers.cloudflare.com/workers/cache/) (`wrangler.jsonc` の `cache.enabled: true`) を使います。応答の `Cache-Control` に従って Cloudflare 側が自動でキャッシュする機能で、`*.workers.dev` のデフォルトドメインでも有効です。
+
+Workers Cache は `Cache-Control` の無い応答もヒューリスティックにキャッシュし、しかも Cookie 付きのリクエストをバイパスしません。そのため、セッションに依存する HTML が他人に配信されないよう、`packages/core/src/web/app.tsx` の `defaultCacheControlMiddleware` が **すべての応答に既定で `Cache-Control: private, no-store` を付け**、ルートが明示的に `Cache-Control` を設定している場合だけそちらを優先します。
+
+`GET /games/:gameId/islands/:id/ogp.png` は、画像の変わりやすさに応じて `Cache-Control` を出し分けます (`routes/islands.tsx` の `ogpCacheControl`)。
+
+| 状態 | `Cache-Control` |
+| --- | --- |
+| 過去のゲーム、終了済みのゲーム | `public, max-age=31536000, immutable` |
+| 進行中のゲーム | 次のターンまでの秒数 (60〜3600 秒にクランプ) |
+| ゲーム開始前 | `public, max-age=60` |
+
+この既定の no-store は Node.js 版でも同じように動きますが、Node.js 版はキャッシュ層を持たないため実質的な影響はありません。
+
+### 画像の長期キャッシュ
+
+`packages/core/public/images/` の地形タイル画像やロゴは、内容の変わらない固定名のファイルです。`packages/core/public/_headers` で `/images/*` だけ `Cache-Control: public, max-age=31536000, immutable` にしています。**画像を差し替える場合はファイル名を変えてください。**
+
+## KV スナップショットキャッシュ
+
+未ログインの `GET /games/:gameId` (トップ) と `GET /games/:gameId/islands/:id` (観光) は、DO への往復を省くため、ページの View Model (`TopPageVM`/`IslandPageVM` の JSON。HTML そのものではない) を Workers KV (`env.SNAPSHOT`) に TTL 付きで保存し、Worker 側でレンダリングして応答します。HTML はキャッシュしないため、「次のターンまであと N 分」のような表示はリクエスト時刻で再計算されます。
+
+- **対象外はすべて DO へ転送**: ログイン中 (Cookie に `hako` を含む)、POST、`/`、`/games`、開発画面、管理画面、OGP 画像などは `HakoniwaGame` (DO) に転送します
+- **`env.SNAPSHOT` は省略可能**: 未バインドなら常に DO へ転送します
+- **レンダリングは Worker 側**: `@hakoniwajs/core` の `renderTopPageHtml`/`renderIslandPageHtml` (`packages/core/src/web/render-snapshot.tsx`) が、DO 側と同じ JSX を `user`/`csrfToken` を `undefined` にして描画します。出力が DO 側と一致することを `packages/cloudflare/test/snapshot-cache.test.ts` で確認しています
+- **DO 側の RPC**: `HakoniwaGame.pageSnapshot({ kind, gameId, islandId? })` が `{ kind, vm, nextTurnAt, ttl }` を返します。`vm` の `terrain` は RPC 越しにメソッドを渡せないため `number[][]` にして受け渡し、Worker 側で `terrainFromJSON` により復元します
+- **TTL は DO 側で決める**: キーにターン数は含めず (`v1:<gameId>:top` / `v1:<gameId>:island:<islandId>`)、invalidate もせずにすべて TTL に任せます。TTL の決め方は [KV スナップショットキャッシュ](/setup/kv-cache#ttl) を参照してください
+- **応答ヘッダ**: HTML なので `Cache-Control` は `private, no-store` のままです。動作確認用に `X-Hakoniwa-Snapshot: hit | miss | bypass` を付けます

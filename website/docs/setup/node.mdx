@@ -1,0 +1,49 @@
+---
+title: Node.js で自前のサーバーに設置する
+description: "@hakoniwajs/node をインストールし、npx hakoniwa serve で HTTP サーバーを起動します。"
+sidebar:
+  label: Node.js
+---
+
+VPS や自宅サーバーなど、自分で管理しているサーバーで動かす方法です。データは `node:sqlite` による SQLite のファイルに保存されます。
+
+## 必要なもの
+
+- Node.js 22.13 以降 (`node:sqlite` を使います)
+
+## インストールと起動
+
+```sh
+npm install @hakoniwajs/node
+HAKONIWA_AUTH_SECRET=xxxx HAKONIWA_ADMIN_EMAILS=you@example.com npx hakoniwa serve
+```
+
+`@hakoniwajs/node` をインストールすると `hakoniwa` コマンドが使えるようになり、`serve` サブコマンドで HTTP サーバーが起動します (既定のポートは 3000。`PORT` で変更できます)。
+
+- `HAKONIWA_AUTH_SECRET` は必須です。`openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列を指定してください
+- 管理画面 (`/admin`) を使うには `HAKONIWA_ADMIN_EMAILS` に自分のメールアドレスを指定してください
+- データベースは既定で `./data/hakoniwa.sqlite` に作られます (`HAKONIWA_DB_PATH` で変更できます)
+
+設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
+
+## 公開する
+
+サーバー自体は HTTPS を扱いません。インターネットに公開する場合は、nginx や Caddy などのリバースプロキシを前段に置いて HTTPS を終端してください。カスタムドメインやリバースプロキシの配下で動かす場合は、`HAKONIWA_BASE_URL` に公開 URL を設定してください。
+
+## ゲームを開始する
+
+ブラウザで `/login` からログインし、`/admin` の「新しいゲームを開始」でゲームを始めます。CLI から始めることもできます。
+
+```sh
+npx hakoniwa game new --name 第1回 --start-at 2026-10-01T21:00:00+09:00 --final-turn 100 --unit-time 6h
+```
+
+ゲームの開始・終了やバックアップなどは CLI からも操作できます。[CLI](/operation/cli) を参照してください。
+
+## ターンの進行
+
+Node.js 版は、サーバー内のタイマーが 60 秒ごと (`HAKONIWA_TURN_CHECK_INTERVAL_SEC` で変更可) にターンの進行を確認します。アクセスがなくてもターンは進みます。
+
+## 静的ファイル
+
+地形の画像や CSS は `@hakoniwajs/core` パッケージ内の `public/` から配信されます。`HAKONIWA_PUBLIC_DIR` で別のディレクトリに差し替えられます。

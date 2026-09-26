@@ -1,0 +1,93 @@
+---
+title: ローカル開発
+description: Node.js の開発サーバーと wrangler dev で、手元でゲームを動かす方法です。
+sidebar:
+  label: ローカル開発
+---
+
+## 必要なツール
+
+Node.js、pnpm、[Vite+](https://viteplus.dev/) (`vp`) は [mise](https://mise.jdx.dev/) で管理しています。
+
+```sh
+mise install
+mise exec -- vp install
+```
+
+シェルで mise を有効にしていない場合は、以降のコマンドにも `mise exec -- ` を付けて実行してください。
+
+## Node.js の開発サーバー
+
+島の作成やログインにはユーザー認証が必須です。ローカル開発では「開発ログイン」(任意のメールアドレスでログインできる機能) を使うのが手軽です。
+
+```sh
+cp .env.node.example .env
+```
+
+`.env` を開き、少なくとも次の 3 つを設定してください。
+
+- `HAKONIWA_AUTH_SECRET`: `openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列
+- `HAKONIWA_DEV_LOGIN=true`: 開発ログインを有効にする
+- `HAKONIWA_ADMIN_EMAILS=自分のメールアドレス`: 管理画面 (`/admin`) に入れるようにする (開発ログインでそのメールアドレスを入力すれば管理者になれる)
+
+mise 経由 (`mise exec -- ...` や `mise activate` 済みのシェル) であれば、リポジトリ直下の `.env` は自動的に読み込まれます。環境変数を変更したときは、開発サーバーを再起動してください。
+
+```sh
+vp run dev
+```
+
+開発サーバーが http://localhost:5173/ で起動します。初回はゲームがまだ無いので、次のいずれかで開始してください。
+
+- `/login` から開発ログインでログインし、`/admin` で「新しいゲームを開始」を実行する
+- CLI で開始する: `vp run --filter ./packages/node cli -- db init`
+
+X / Discord ログインを試す場合は、OAuth アプリのコールバック URL に `http://localhost:5173/api/auth/callback/twitter` (または `.../discord`) を登録してください ([ログイン方法の設定](/setup/login-methods))。メールログインは `HAKONIWA_RESEND_API_KEY` を設定しない限り、コンソールにリンクを出力するだけです。
+
+データベースのスキーマは起動時に自動でマイグレーションされます。ただし初期のスキーマ (v1) で作られたデータベースファイルが残っている場合は互換性が無いため、`vp run --filter ./packages/node cli -- db reset --yes` で削除してから初期化し直してください。
+
+## `wrangler dev`
+
+ローカル用の秘密情報はリポジトリ直下の `.dev.vars` に書きます (git 管理外)。
+
+```sh
+cp .dev.vars.example .dev.vars
+```
+
+```sh .dev.vars
+HAKONIWA_AUTH_SECRET=（openssl rand -base64 32 などで生成した32バイト以上のランダム文字列）
+HAKONIWA_DEV_LOGIN=true
+HAKONIWA_ADMIN_EMAILS=you@example.com
+```
+
+```sh
+pnpm --filter @hakoniwajs/cloudflare dev
+```
+
+`.dev.vars` を作らずに試す場合は `--var` オプションでも指定できます。
+
+```sh
+wrangler dev --port 8787 \
+  --var HAKONIWA_AUTH_SECRET:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+  --var HAKONIWA_DEV_LOGIN:true \
+  --var HAKONIWA_ADMIN_EMAILS:you@example.com
+```
+
+ローカルの Durable Object の状態は `.wrangler/state` (リポジトリ直下) に保存されます。ローカルでは Cron は自動で発火しないため、`curl http://localhost:8787/cdn-cgi/local/scheduled` で手動で呼び出せます。
+
+:::note
+`wrangler.jsonc` をリポジトリ直下に置いているため、`wrangler dev` は Node.js 版の開発で使っている `.env` も (`.dev.vars` と合わせて) 読み込みます。`.env` に `HAKONIWA_BASE_URL=http://localhost:5173` を設定したまま別のポートで `wrangler dev` を動かすと、Origin 検査の基準が食い違うことがあります。その場合は `.env` の `HAKONIWA_BASE_URL` をコメントアウトするか、`--var HAKONIWA_BASE_URL:http://localhost:8788` で上書きしてください。
+:::
+
+## CLI
+
+ローカル開発では `vp run --filter ./packages/node cli -- <command>` でビルドせずに CLI を実行できます。ビルド済みなら `node packages/node/dist/cli.js <command>` でも同じです。コマンドの一覧は [CLI](/operation/cli) を参照してください。
+
+## ドキュメントサイト
+
+このドキュメントサイトは `website/` にあります。
+
+```sh
+cd website
+npm install
+npm run dev
+```

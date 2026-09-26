@@ -1,0 +1,85 @@
+---
+title: Cloudflare に手動でデプロイする
+description: "@hakoniwajs/cloudflare をインストールした Worker プロジェクトを作り、Wrangler でデプロイします。"
+sidebar:
+  label: Cloudflare (手動)
+---
+
+`@hakoniwajs/cloudflare` パッケージをインストールした小さな Worker プロジェクトを作り、[Wrangler](https://developers.cloudflare.com/workers/wrangler/) でデプロイします。[テンプレートリポジトリ](https://github.com/hakoniwajs/template-cloudflare) を「Use this template」でコピーして使うのが手軽です。
+
+## 必要なもの
+
+- Node.js 22 以降
+- [Cloudflare のアカウント](https://dash.cloudflare.com/sign-up)
+
+## プロジェクトを作る
+
+```sh
+npm install @hakoniwajs/cloudflare wrangler
+```
+
+Worker のエントリ (`src/worker.ts`) は、`@hakoniwajs/cloudflare` が提供する Worker と Durable Object をそのまま export するだけです。
+
+```ts src/worker.ts
+import { createWorker } from "@hakoniwajs/cloudflare";
+
+export { HakoniwaGame } from "@hakoniwajs/cloudflare";
+
+export default createWorker();
+```
+
+`wrangler.jsonc` の例です (完全版はテンプレートリポジトリを参照してください)。
+
+```jsonc wrangler.jsonc
+{
+  "name": "hakoniwa",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  // ゲームの静的ファイル (画像・CSS) は @hakoniwajs/core パッケージ内の public/ から配信する
+  "assets": { "directory": "./node_modules/@hakoniwajs/core/public" },
+  "durable_objects": {
+    "bindings": [{ "name": "GAME", "class_name": "HakoniwaGame" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HakoniwaGame"] }],
+  // ターン進行のトリガー (15 分ごと)
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": {
+    "HAKONIWA_ADMIN_EMAILS": "you@example.com",
+    "HAKONIWA_DEV_LOGIN": "false",
+  },
+}
+```
+
+`name` は Worker の名前 (公開 URL の `https://<name>.<サブドメイン>.workers.dev` の部分) になります。必要に応じて書き換えてください。
+
+## secret を登録してデプロイする
+
+```sh
+npx wrangler login
+npx wrangler secret put HAKONIWA_AUTH_SECRET
+npx wrangler deploy
+```
+
+`HAKONIWA_AUTH_SECRET` には `openssl rand -base64 32` などで生成した 32 バイト以上のランダムな文字列を入力します。
+
+X / Discord ログインやメール送信を使う場合は、次の secret も登録します (詳しくは [ログイン方法の設定](/setup/login-methods))。
+
+```sh
+npx wrangler secret put HAKONIWA_X_CLIENT_ID
+npx wrangler secret put HAKONIWA_X_CLIENT_SECRET
+npx wrangler secret put HAKONIWA_DISCORD_CLIENT_ID
+npx wrangler secret put HAKONIWA_DISCORD_CLIENT_SECRET
+npx wrangler secret put HAKONIWA_RESEND_API_KEY
+```
+
+## 設定の書き方
+
+- 秘密でない設定 (`HAKONIWA_ADMIN_EMAILS` など) は `wrangler.jsonc` の `vars` に書きます
+- 秘密の設定 (`HAKONIWA_AUTH_SECRET` など) は `wrangler secret put` で登録します
+- `HAKONIWA_DEV_LOGIN` (任意のメールアドレスでログインできる開発用機能) は、本番では必ず `false` のままにしてください
+- カスタムドメインを使う場合だけ `HAKONIWA_BASE_URL` を `vars` に追加します (通常は不要です)
+
+設定できる項目は [環境変数一覧](/setup/environment-variables) を参照してください。
+
+デプロイ後の手順 (ログインしてゲームを開始する) は [ワンクリックデプロイの手順 4 以降](/setup/cloudflare#手順) と同じです。

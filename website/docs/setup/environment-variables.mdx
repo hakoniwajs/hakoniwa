@@ -1,0 +1,66 @@
+---
+title: 環境変数一覧
+description: 箱庭諸島２ TypeScript 版で設定できる環境変数の一覧です。
+sidebar:
+  label: 環境変数一覧
+---
+
+Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wrangler.jsonc` の `vars` か secret (`wrangler secret put` やダッシュボード) に設定します。
+
+**ほとんどの項目は省略できます。** 最低限必要なのは `HAKONIWA_AUTH_SECRET` と、管理画面を使うための `HAKONIWA_ADMIN_EMAILS` だけです。
+
+## 認証・管理者
+
+| 環境変数 | 既定値 | 説明 | Cloudflare |
+| --- | --- | --- | --- |
+| `HAKONIWA_AUTH_SECRET` | なし (**必須**) | ログインのセッションと CSRF トークンの鍵。`openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列 | secret |
+| `HAKONIWA_ADMIN_EMAILS` | なし | 管理者とみなすメールアドレス (カンマ区切り) | vars |
+| `HAKONIWA_BASE_URL` | なし (リクエストから自動判定) | 公開 URL。OAuth のコールバックと Origin 検査に使います。カスタムドメインやリバースプロキシ配下で明示したいときだけ設定します | vars |
+| `HAKONIWA_X_CLIENT_ID` / `HAKONIWA_X_CLIENT_SECRET` | なし | 両方設定すると X (Twitter) ログインが使えるようになります | secret |
+| `HAKONIWA_DISCORD_CLIENT_ID` / `HAKONIWA_DISCORD_CLIENT_SECRET` | なし | 両方設定すると Discord ログインが使えるようになります | secret |
+| `HAKONIWA_RESEND_API_KEY` | なし | メールログインのメール送信 (Resend)。未設定ならログにリンクを出力するだけになります | secret |
+| `HAKONIWA_MAIL_FROM` | `hakoniwa@example.com` | メールの送信元アドレス | vars |
+| `HAKONIWA_DEV_LOGIN` | `false` | `true` で開発ログイン (任意のメールアドレスでログイン) を有効にします。**本番では必ず `false`** | vars |
+
+## サイトの表示
+
+| 環境変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `HAKONIWA_SITE_TITLE` | `箱庭諸島２` | サイトのタイトル |
+| `HAKONIWA_ADMIN_NAME` | なし | フッタに表示する管理者名。未設定なら表示しません |
+| `HAKONIWA_EMAIL` | なし | フッタに表示する連絡先。未設定なら表示しません |
+| `HAKONIWA_BBS_URL` | なし | フッタに表示する掲示板へのリンク。未設定なら表示しません |
+| `HAKONIWA_TOPPAGE_URL` | なし | フッタに表示するトップページへのリンク。未設定なら表示しません |
+| `HAKONIWA_TIMEZONE` | `Asia/Tokyo` | 日時の入力と表示に使うタイムゾーン (IANA タイムゾーン名) |
+
+## ゲーム
+
+| 環境変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `HAKONIWA_UNIT_TIME_SEC` | `21600` (6 時間) | 新しいゲームを開始するときの 1 ターンの長さ (秒) の既定値。開始後は管理画面や CLI で変更します |
+| `HAKONIWA_START_AT` | なし | 新しいゲームの開始日時 (ISO 8601) の既定値。未設定なら開始操作をした時刻を基準にします |
+| `HAKONIWA_FINAL_TURN` | なし | 新しいゲームの最終ターン数の既定値。未設定なら無期限 |
+| `HAKONIWA_MAX_CATCH_UP_TURNS` | `1` (Cloudflare のテンプレートでは `3`) | 1 回の判定で進める最大ターン数 |
+| `HAKONIWA_USE_LBBS` | `false` | 島ごとのローカル掲示板を有効にします |
+| `HAKONIWA_NG_WORDS` | なし | 追加の NG ワード (カンマ区切り)。同梱のリストに加えて、島名・コメント・掲示板の投稿で拒否します |
+| `HAKONIWA_ADMIN_ENABLED` | `true` | 管理画面 (`/admin`) の有効・無効 |
+| `HAKONIWA_DEBUG` | `false` | `true` でトップページに「ターンを進める」ボタンを表示します (管理者のみ。開発用) |
+
+## Cloudflare 版のみ
+
+| 環境変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `HAKONIWA_SNAPSHOT_TTL_SEC` | `60` | [KV スナップショットキャッシュ](/setup/kv-cache) の短期 TTL (秒) |
+| `HAKONIWA_SNAPSHOT_TTL_IMMUTABLE_SEC` | `2592000` (30 日) | KV スナップショットキャッシュの長期 TTL (秒) |
+
+## Node.js 版のみ
+
+| 環境変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `PORT` | `3000` | サーバーの待ち受けポート |
+| `HAKONIWA_DB_PATH` | `./data/hakoniwa.sqlite` | SQLite データベースファイル |
+| `HAKONIWA_BACKUP_DIR` | `./data/backups` | バックアップの出力先 |
+| `HAKONIWA_TURN_CHECK_INTERVAL_SEC` | `60` | ターン進行を確認する間隔 (秒)。`0` で無効 |
+| `HAKONIWA_PUBLIC_DIR` | `@hakoniwajs/core` の `public/` | 画像や CSS を配信するディレクトリ |
+
+コード上の定義は `packages/core/src/bootstrap/config-from-env.ts` (共通)、`packages/node/src/config.ts` (Node.js 版)、`packages/cloudflare/src/snapshot.ts` (KV キャッシュ) にあります。

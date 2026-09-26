@@ -1,0 +1,44 @@
+---
+title: リリースとドキュメント公開
+description: npm パッケージのリリース、テンプレートリポジトリへの追従、このドキュメントサイトの公開の流れです。
+sidebar:
+  label: リリース
+---
+
+## npm パッケージ
+
+`@hakoniwajs/core`・`@hakoniwajs/node`・`@hakoniwajs/cloudflare` の 3 パッケージを npm で配布しています。開発中は各パッケージの `exports` が `./src/index.ts` (TypeScript ソース) を指しますが、公開時は `publishConfig.exports` によりビルド済みの `dist/` に差し替わります。
+
+```sh
+pnpm -r run build
+```
+
+`workspace:*` 依存は publish 時に実バージョンへ自動で書き換えられます。
+
+## リリースの流れ
+
+リリースは [tagpr](https://github.com/Songmu/tagpr) と npm publish を、同じ `release` ワークフロー (`.github/workflows/release.yml`) で行っています。
+
+<Steps>
+  <Step title="リリース PR">
+    main への push ごとに tagpr がリリース PR を作成・更新します。3 パッケージの `version` は tagpr が一括で更新します。
+  </Step>
+  <Step title="タグと publish">
+    リリース PR をマージすると、tagpr がタグと GitHub Release を作り、同じ run の中で `pnpm -r publish` が実行されます (GITHUB_TOKEN で作られた Release は後続のワークフローを起動しないため、同じジョブに同居させています)。
+  </Step>
+  <Step title="テンプレートリポジトリへの追従">
+    publish に成功すると、テンプレートリポジトリ (既定 `hakoniwajs/template-cloudflare`、`vars.TEMPLATE_REPO` で変更可) の `@hakoniwajs/*` 依存を新しいバージョンに更新して push します。
+  </Step>
+</Steps>
+
+- npm の認証は Trusted Publishing (OIDC) で、NPM_TOKEN は不要です。npmjs.com 側で各パッケージの Trusted Publisher にこのリポジトリの `release.yml` を登録しておく必要があります
+- publish だけ失敗した場合は、Actions から `release` ワークフローを `workflow_dispatch` で既存のタグを指定して再実行できます
+- テンプレートリポジトリへの push には deploy key (書き込み可) を使います。秘密鍵をこのリポジトリの `TEMPLATE_CLOUDFLARE_DEPLOY_KEY` secret に登録しておく必要があります
+
+## ドキュメントサイト
+
+このドキュメントサイトは `website/` にあり、[Blume](https://useblume.dev/) でビルドしています。main ブランチの `website/` に変更が push されると、`.github/workflows/docs.yml` がビルドして GitHub Pages (https://hakoniwajs.github.io/hakoniwa/) に公開します。
+
+- ページは `website/docs/` の MDX ファイルです。フォルダがサイドバーのグループになり、並び順は各フォルダの `meta.ts` で指定しています
+- サイト全体の設定は `website/blume.config.ts` にあります。GitHub Pages のプロジェクトサイトとして配信するため、`deployment.base` を `/hakoniwa` にしています
+- リンクは `/setup/cloudflare` のようにサイトのルートからのパスで書きます (ビルド時に `/hakoniwa` が付きます)

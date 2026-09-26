@@ -1,0 +1,54 @@
+---
+title: 開発者向けドキュメント
+description: 箱庭諸島２ TypeScript 版の開発に参加する方向けに、リポジトリの構成を説明します。
+sidebar:
+  label: 構成
+---
+
+箱庭諸島２ TypeScript 版の開発に参加する方向けのドキュメントです。自分の環境に設置するだけなら [設置方法の選び方](/setup) を参照してください。
+
+## モノレポの構成
+
+pnpm workspace によるモノレポです。パッケージ化しているのは差し替え単位となる Adapter だけで、ゲーム本体は 1 パッケージです。
+
+| パッケージ | 役割 |
+| --- | --- |
+| `packages/core` (`@hakoniwajs/core`) | ゲーム本体。ランタイム非依存で、Node.js や Cloudflare 固有の API を使いません。画像や CSS などの `public/` も含みます |
+| `packages/node` (`@hakoniwajs/node`) | Node.js 向け Adapter。`node:sqlite` によるストレージ、HTTP サーバー、ファイルバックアップ、CLI |
+| `packages/cloudflare` (`@hakoniwajs/cloudflare`) | Cloudflare Workers (Durable Objects SQLite) 向け Adapter。DO のストレージ、Cron Trigger によるターン進行、PITR バックアップ |
+| `website` | このドキュメントサイト ([Blume](https://useblume.dev/))。pnpm workspace には含めず、npm で独立して管理しています |
+
+## `packages/core` の層
+
+依存の方向が一方向になるよう、層を分けています。
+
+<FileTree>
+  - packages/core/src
+    - core/ ゲームロジック本体。上位層にも Hono にも依存しない
+    - app/ ユースケース (サービス層)。core を組み合わせてリクエスト単位の処理を組み立てる
+    - storage/ SQLite 用のストレージ抽象 (スキーマ、リポジトリ)
+    - web/ Hono + hono/jsx によるルーティングと画面
+    - bootstrap/ 上記を組み立てる層。環境変数の読み込み (config-from-env.ts) もここ
+    - ogp/ OGP 画像の描画 (純粋な TypeScript の PNG エンコーダ)
+</FileTree>
+
+`node:sqlite` などランタイム固有の実装は `SqlDriver` として Adapter 側から差し込みます。`packages/node`・`packages/cloudflare` は `SqlDriver`/`BackupStore` などランタイム固有の実装だけを持ち、ゲームロジックやスキーマは共通です。
+
+これらの制約は `vite.config.ts` の lint 設定 (`no-restricted-imports`) で検査しています。
+
+## 次に読む
+
+<CardGroup cols={2}>
+  <Card title="ローカル開発" href="/development/local" icon="laptop">
+    Node.js と `wrangler dev` での開発環境の作り方
+  </Card>
+  <Card title="テストと静的検査" href="/development/testing" icon="check">
+    Vitest、lint、フォーマット
+  </Card>
+  <Card title="内部の仕組み" href="/development/architecture" icon="cpu">
+    ターン進行の排他制御、島の放棄、OGP 画像
+  </Card>
+  <Card title="キャッシュの仕組み" href="/development/cache" icon="zap">
+    Workers Cache と KV スナップショットキャッシュ
+  </Card>
+</CardGroup>
