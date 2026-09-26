@@ -14,7 +14,7 @@ import type { SqlDriver } from "../storage/driver.ts";
 import { SqliteGameRepository } from "../storage/repository.ts";
 import { SqliteSettingsRepository } from "../storage/settings-repository.ts";
 import { createApp } from "../web/app.tsx";
-import type { WebDeps } from "../web/deps.ts";
+import type { CachePurger, WebDeps } from "../web/deps.ts";
 import { createAuth } from "./auth.ts";
 import { resolveAuthSecret } from "./auth-secret.ts";
 import type { AppConfig } from "./config-from-env.ts";
@@ -42,6 +42,8 @@ export interface BuildDepsInput {
    * (bootstrap/session-cookie-cache.ts)。省略時は false。
    */
   sessionCookieCache?: boolean;
+  /** エッジのキャッシュを消す (`WebDeps.cachePurger`。Cloudflare 版の DO が指定する)。 */
+  cachePurger?: CachePurger;
 }
 
 export interface BuiltDeps {
@@ -184,6 +186,7 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     logger,
     cacheHints: input.cacheHints ?? false,
     sessionCookieCache,
+    ...(input.cachePurger !== undefined ? { cachePurger: input.cachePurger } : {}),
   };
   const app = createApp(webDeps);
 

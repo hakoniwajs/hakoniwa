@@ -28,22 +28,26 @@ function season(overrides: Partial<SeasonVM>): SeasonVM {
 }
 
 describe("pageCacheDirectives", () => {
-  it("過去のゲームは 1 日", () => {
-    expect(
-      pageCacheDirectives({
-        game: game(false),
-        season: season({ state: "finished", nextTurnAt: null }),
-        now: NOW,
-      }),
-    ).toBe("max-age=86400");
+  it("過去のゲームは immutable (トップ・観光・開発画面とも)", () => {
+    for (const page of ["top", "island", "owner"] as const) {
+      expect(
+        pageCacheDirectives({
+          page,
+          game: game(false),
+          season: season({ state: "finished", nextTurnAt: null }),
+          now: NOW,
+        }),
+      ).toBe("max-age=31536000, immutable");
+    }
   });
 
   it("進行中は次のターンまでの秒数 (上限 60) + stale-while-revalidate=60", () => {
-    expect(pageCacheDirectives({ game: game(true), season: season({}), now: NOW })).toBe(
-      "max-age=60, stale-while-revalidate=60",
-    );
+    expect(
+      pageCacheDirectives({ page: "top", game: game(true), season: season({}), now: NOW }),
+    ).toBe("max-age=60, stale-while-revalidate=60");
     expect(
       pageCacheDirectives({
+        page: "top",
         game: game(true),
         season: season({ nextTurnAt: NOW + 15 }),
         now: NOW,
@@ -54,7 +58,12 @@ describe("pageCacheDirectives", () => {
   it("次のターンの予定時刻を過ぎていればキャッシュさせない", () => {
     for (const nextTurnAt of [NOW, NOW - 1]) {
       expect(
-        pageCacheDirectives({ game: game(true), season: season({ nextTurnAt }), now: NOW }),
+        pageCacheDirectives({
+          page: "top",
+          game: game(true),
+          season: season({ nextTurnAt }),
+          now: NOW,
+        }),
       ).toBeUndefined();
     }
   });
@@ -62,25 +71,27 @@ describe("pageCacheDirectives", () => {
   it("開始前はゲーム開始までの秒数 (上限 60)。開始時刻を過ぎていればキャッシュさせない", () => {
     const before = (startAt: number) =>
       season({ state: "before", turn: 0, startAt, nextTurnAt: null });
-    expect(pageCacheDirectives({ game: game(true), season: before(NOW + 30), now: NOW })).toBe(
-      "max-age=30, stale-while-revalidate=60",
-    );
-    expect(pageCacheDirectives({ game: game(true), season: before(NOW + 9999), now: NOW })).toBe(
-      "max-age=60, stale-while-revalidate=60",
-    );
     expect(
-      pageCacheDirectives({ game: game(true), season: before(NOW), now: NOW }),
+      pageCacheDirectives({ page: "top", game: game(true), season: before(NOW + 30), now: NOW }),
+    ).toBe("max-age=30, stale-while-revalidate=60");
+    expect(
+      pageCacheDirectives({ page: "top", game: game(true), season: before(NOW + 9999), now: NOW }),
+    ).toBe("max-age=60, stale-while-revalidate=60");
+    expect(
+      pageCacheDirectives({ page: "top", game: game(true), season: before(NOW), now: NOW }),
     ).toBeUndefined();
   });
 
-  it("終了済み (現在のゲーム) は 60 秒", () => {
-    expect(
-      pageCacheDirectives({
-        game: game(true),
-        season: season({ state: "finished", status: "finished", nextTurnAt: null }),
-        now: NOW,
-      }),
-    ).toBe("max-age=60, stale-while-revalidate=60");
+  it("終了済み (現在のゲーム) のトップは immutable、観光・開発画面は 60 秒 (記帳が入りうる)", () => {
+    const finished = season({ state: "finished", status: "finished", nextTurnAt: null });
+    expect(pageCacheDirectives({ page: "top", game: game(true), season: finished, now: NOW })).toBe(
+      "max-age=31536000, immutable",
+    );
+    for (const page of ["island", "owner"] as const) {
+      expect(pageCacheDirectives({ page, game: game(true), season: finished, now: NOW })).toBe(
+        "max-age=60, stale-while-revalidate=60",
+      );
+    }
   });
 });
 
@@ -149,5 +160,41 @@ describe("応答の目安のヘッダ", () => {
     near.clock.set(INITIAL_CLOCK + 21600 - 10);
     const res = await near.app.request("/games/1");
     expect(res.headers.get(CACHE_HINT_HEADER)).toBe("max-age=10, stale-while-revalidate=60");
+  });
+});
+
+describe("管理操作のあとのキャッシュの purge (WebDeps.cachePurger)", () => {
+  it("サイト設定・ゲームの終了/開始・データの削除のあとに呼ぶ。それ以外の操作では呼ばない", async () => {
+    const reasons: string[] = [];
+    const testApp = setupTestApp({
+      adminEmails: ["admin@example.com"],
+      cachePurger: {
+        purgeAll: async (reason) => {
+          reasons.push(reason);
+        },
+      },
+    });
+    const admin = await loginAs(testApp, {
+      id: "admin1",
+      name: "かんりしゃ",
+      email: "admin@example.com",
+    });
+    const post = (path: string, fields: Record<string, string> = {}) =>
+      postForm(testApp.app, path, { _csrf: admin.csrfToken, ...fields }, { cookie: admin.cookie });
+
+    expect((await post("/admin/site-settings", { title: "しま", timezone: "UTC" })).status).toBe(
+      200,
+    );
+    expect((await post("/admin/turn")).status).toBe(200);
+    expect((await post("/admin/games/current/finish", { confirm: "on" })).status).toBe(200);
+    expect((await post("/admin/games")).status).toBe(200);
+    expect((await post("/admin/reset")).status).toBe(200);
+    expect(reasons).toEqual(["site-settings", "finish-game", "start-game", "reset"]);
+
+    // 失敗した操作 (進行中のゲームがあるのに開始) では呼ばない。
+    reasons.length = 0;
+    await post("/admin/games");
+    await post("/admin/games");
+    expect(reasons).toEqual(["start-game"]);
   });
 });

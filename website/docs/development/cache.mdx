@@ -65,10 +65,11 @@ HakoniwaGame (DO)
 
 | ページの状態 | キャッシュ期間 |
 | --- | --- |
-| 過去のゲーム | `max-age=86400` (ゲームの内容は変わらないが、サイト設定は変わりうるため 1 日) |
+| 過去のゲーム | `max-age=31536000, immutable` (記帳もできず、内容は変わらない) |
+| 終了済みのゲーム (現在のゲーム) のトップ | `max-age=31536000, immutable` (新しいゲームが始まると表示が変わるが、そのときは purge する) |
+| 終了済みのゲーム (現在のゲーム) の観光・開発画面 | `max-age=60, stale-while-revalidate=60` (記帳が入りうるため) |
 | 進行中のゲーム | 次のターンまでの秒数 (上限 60 秒) + `stale-while-revalidate=60`。予定時刻を過ぎていればキャッシュしない |
 | ゲーム開始前 | ゲーム開始までの秒数 (上限 60 秒) + `stale-while-revalidate=60` |
-| 終了済みのゲーム (現在のゲーム) | `max-age=60, stale-while-revalidate=60` (記帳が入りうるため) |
 | ゲーム一覧 | `max-age=60, stale-while-revalidate=60` |
 
 タグは `game-<gameId>`・`island-<gameId>-<islandId>`・`games` です。
@@ -105,5 +106,21 @@ DO には better-auth の Cookie だけを渡し、クエリはトップの `not
 ### キャッシュしないもの
 
 管理画面 (`/admin*`)・アカウント設定 (`/account*`)・ログイン (`/login`、`/auth/*`、`/api/auth/*`)・`/`・GET/HEAD 以外のリクエストは、Gateway から DO へそのまま転送します。`Set-Cookie` を含む応答は `CachedPages` がキャッシュさせません。
+
+## purge (キャッシュの削除)
+
+キャッシュした全ページの内容が変わる稀なイベントでは、`CachedPages` のキャッシュを丸ごと消します (`purgeEverything`)。
+
+| イベント | purge する場所 |
+| --- | --- |
+| サイト設定の変更・ゲームの開始・ゲームの終了・データの削除 | 管理画面のルート (`packages/core/src/web/routes/admin.tsx`) が、操作の成功後に `WebDeps.cachePurger.purgeAll()` を呼ぶ |
+| バックアップの復元 | `BookmarkBackupStore.restore` (`packages/cloudflare/src/backup.ts`) が、復元の予約と同じ `blockConcurrencyWhile` の中で、DO を再起動する前に呼ぶ (再起動後は「復元した」ことが分からないため) |
+| ターン進行 | 不要 (キャッシュ期間を次のターンまでにしているため) |
+| デプロイ | 不要 (Worker のバージョンごとにキャッシュが分かれるため) |
+
+- purge は、それを呼んだエントリポイントのキャッシュにしか効きません。そのため DO は `ctx.exports.CachedPages.purgeEverything()` (RPC) で、キャッシュを持つ `CachedPages` 自身に `ctx.cache.purge({ purgeEverything: true })` を呼ばせます (`packages/cloudflare/src/cache-purge.ts`)
+- purge の回数には上限 (Free プラン相当: 5 回/分、バケット 25) があるため、自分の操作や他のプレイヤーの操作による変更は purge ではなく、キャッシュ期間とキャッシュキー (`rev`) で反映します
+- purge に失敗しても (上限に達した場合など)、管理操作は成功のままにします。失敗はログに残し、settings 表の `cache.purge_pending` に印を置いて、Cron (`checkTurn`、15 分ごと) でやり直します (復元の場合は印も復元で消えるため、やり直しません)
+- Node.js 版は `cachePurger` を渡さないため、何もしません
 
 以前のバージョンの KV スナップショットキャッシュ (`SNAPSHOT` バインディング、`HAKONIWA_SNAPSHOT_TTL_*`) は廃止しました。既存のデプロイに設定が残っていても無視されます。
