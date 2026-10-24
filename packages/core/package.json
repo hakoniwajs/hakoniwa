@@ -1,6 +1,6 @@
 {
   "name": "@hakoniwajs/core",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "箱庭諸島２ (TypeScript 版) のランタイム非依存コア。ゲームロジック・ストレージ・Hono app・OGP 描画を含む",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
