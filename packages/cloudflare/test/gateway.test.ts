@@ -6,6 +6,7 @@ import { reset } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Env } from "../src/env.ts";
+import { clearAuthSecretMemo } from "../src/worker.ts";
 import {
   createIsland,
   fetchWorker,
@@ -29,6 +30,7 @@ const ANONYMOUS = { v: 1, viewer: "anonymous", origin: "http://example.com" };
 
 afterEach(async () => {
   await reset();
+  clearAuthSecretMemo();
 });
 
 describe("Gateway → CachedPages", () => {

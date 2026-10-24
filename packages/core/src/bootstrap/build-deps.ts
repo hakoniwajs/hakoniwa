@@ -36,6 +36,12 @@ export interface BuildDepsInput {
    * (`WebDeps.cacheHints`。Cloudflare 版の DO が指定する)。省略時は false。
    */
   cacheHints?: boolean;
+  /**
+   * true なら better-auth のセッションの Cookie キャッシュ (署名付き Cookie `hako.session_data`) を
+   * 有効にする。Cloudflare 版の Gateway が DO に問い合わせずにセッションを検証するために使う
+   * (bootstrap/session-cookie-cache.ts)。省略時は false。
+   */
+  sessionCookieCache?: boolean;
 }
 
 export interface BuiltDeps {
@@ -128,7 +134,15 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
       "管理者が未設定です。ログインしてから /admin/setup を開くと、管理者になるためのセットアップコードをこのログに出力します。",
     );
   }
-  const auth = createAuth({ driver, config, secret: authSecret, mailer, authMethods });
+  const sessionCookieCache = input.sessionCookieCache ?? false;
+  const auth = createAuth({
+    driver,
+    config,
+    secret: authSecret,
+    mailer,
+    authMethods,
+    sessionCookieCache,
+  });
   const siteSettings = new SiteSettingsService({ settings, fallback: config.siteDefaults });
 
   const gameService = new GameService({
@@ -169,6 +183,7 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     auth,
     logger,
     cacheHints: input.cacheHints ?? false,
+    sessionCookieCache,
   };
   const app = createApp(webDeps);
 

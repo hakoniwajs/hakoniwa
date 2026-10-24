@@ -33,7 +33,12 @@ function renderAuthApiError(c: Context<AppEnv>, deps: WebDeps, err: unknown) {
 
 /** アカウント設定画面を最新のセッション情報で再構成する。ログイン必須。 */
 async function renderAccountPage(c: Context<AppEnv>, deps: WebDeps, notice?: string) {
-  const session = await deps.auth.api.getSession({ headers: c.req.raw.headers });
+  // セッションの Cookie キャッシュ (Cloudflare 版) を使うと、直前に変更した表示名などが
+  // 反映されないため、常に DB のセッションを読む。
+  const session = await deps.auth.api.getSession({
+    headers: c.req.raw.headers,
+    query: { disableCookieCache: true },
+  });
   if (session === null) {
     throw new AppError("login_required");
   }
@@ -129,10 +134,17 @@ export function createAccountRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const { name } = parseNameForm(body);
     try {
-      await deps.auth.api.updateUser({
+      const { headers } = await deps.auth.api.updateUser({
         body: { name },
         headers: c.req.raw.headers,
+        returnHeaders: true,
       });
+      // セッションの Cookie キャッシュ (Cloudflare 版) には表示名も入っているので、better-auth が
+      // 作り直した Cookie をブラウザへ返す (返さないと、Cookie キャッシュの期限まで古い表示名の
+      // ままになる)。Cookie キャッシュを使わない場合 (Node 版) は従来どおり返さない。
+      if (deps.sessionCookieCache === true) {
+        forwardSetCookie(c, headers);
+      }
     } catch (err) {
       return renderAuthApiError(c, deps, err);
     }
