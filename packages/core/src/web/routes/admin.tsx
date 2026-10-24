@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { AuthUser } from "../../app/auth.ts";
 import { AppError } from "../../app/errors.ts";
-import type { WebDeps } from "../deps.ts";
+import { CachePurgeFailedError, type WebDeps } from "../deps.ts";
 import type { AppEnv } from "../env.ts";
 import { parseStrictNonNegativeInt, parseStringBody } from "../forms/common.ts";
 import {
@@ -60,6 +60,16 @@ async function renderAdmin(c: Context<AppEnv>, deps: WebDeps, notice: string | u
       notice={notice}
     />,
   );
+}
+
+/**
+ * キャッシュしたページの内容が変わる管理操作のあとに、エッジのキャッシュを消す (Cloudflare 版
+ * だけ。purge は回数に上限があるため、稀な操作に限る)。失敗しても管理操作は成功のまま
+ * (CachePurger はログに残し、Cron でやり直す)。復元だけは失敗時に操作自体を中止する
+ * (`BackupStore`)。
+ */
+async function purgeCaches(deps: WebDeps, reason: string): Promise<void> {
+  await deps.cachePurger?.purgeAll(reason);
 }
 
 /** ログイン中ユーザーのメールアドレス。X ログインのプレースホルダ (`*.invalid`) なら undefined。 */
@@ -168,6 +178,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const form = parseStartGameForm(body, deps.siteSettings.get().timezone);
     deps.adminService.startGame(form, deps.clock.now());
+    await purgeCaches(deps, "start-game");
     return renderAdmin(c, deps, "新しいゲームを開始しました。");
   });
 
@@ -177,12 +188,14 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     parseFinishGameForm(body);
     deps.adminService.finishCurrentGame(deps.clock.now());
+    await purgeCaches(deps, "finish-game");
     return renderAdmin(c, deps, "このゲームを終了しました。");
   });
 
   app.post("/admin/reset", async (c) => {
     requireAdmin(c);
     deps.adminService.reset();
+    await purgeCaches(deps, "reset");
     return renderAdmin(c, deps, "データを削除しました。");
   });
 
@@ -191,6 +204,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const form = parseAdminLastTimeForm(body, deps.siteSettings.get().timezone);
     deps.adminService.setLastTime(form.unix);
+    await purgeCaches(deps, "last-time");
     return renderAdmin(c, deps, "最終更新時間を変更しました。");
   });
 
@@ -200,6 +214,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const finalTurn = parseFinalTurnForm(body);
     deps.adminService.setFinalTurn(finalTurn);
+    await purgeCaches(deps, "final-turn");
     return renderAdmin(c, deps, "最終ターン数を変更しました。");
   });
 
@@ -210,12 +225,14 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const unitTimeSec = parseUnitTimeForm(body);
     deps.adminService.setUnitTimeSec(unitTimeSec);
+    await purgeCaches(deps, "unit-time");
     return renderAdmin(c, deps, "1 ターンの長さを変更しました。");
   });
 
   app.post("/admin/turn", async (c) => {
     requireAdmin(c);
     deps.adminService.advanceTurn(deps.clock.now());
+    await purgeCaches(deps, "advance-turn");
     return renderAdmin(c, deps, "ターンを進めました。");
   });
 
@@ -227,9 +244,23 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     return renderAdmin(c, deps, "バックアップを作成しました。");
   });
 
+  // 復元ではエッジのキャッシュも消す必要があるが、Cloudflare 版は復元の予約と同時に DO を
+  // 再起動するため、ここではなく BackupStore (packages/cloudflare/src/backup.ts) が再起動の前に消す。
+  // purge に失敗したときは復元自体を中止する (CachePurgeFailedError)。
   app.post("/admin/backups/:label/restore", async (c) => {
     requireAdmin(c);
-    await deps.adminService.restoreBackup(c.req.param("label"));
+    try {
+      await deps.adminService.restoreBackup(c.req.param("label"));
+    } catch (err) {
+      if (err instanceof CachePurgeFailedError) {
+        return renderAdmin(
+          c,
+          deps,
+          "キャッシュを削除できなかったため、復元を中止しました。しばらくしてからもう一度試してください。",
+        );
+      }
+      throw err;
+    }
     return renderAdmin(c, deps, "復元しました。再読み込みしてください。");
   });
 
@@ -255,6 +286,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const form = parseSiteSettingsForm(body);
     deps.siteSettings.update(form);
+    await purgeCaches(deps, "site-settings");
     return renderAdmin(c, deps, "サイト設定を変更しました。");
   });
 
@@ -267,6 +299,7 @@ export function createAdminRoutes(deps: WebDeps): Hono<AppEnv> {
     const body = await parseStringBody(c);
     const id = parseStrictNonNegativeInt(body, "id");
     deps.adminService.maximizeIsland(id);
+    await purgeCaches(deps, "maximize");
     return renderAdmin(c, deps, "資金・食料を最大化しました。");
   });
 

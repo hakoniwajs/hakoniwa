@@ -274,7 +274,7 @@ export { ConsoleMailer, ResendMailer } from "./bootstrap/mailer.ts";
 // ----------------------------------------------------------------------
 
 export type { AppEnv } from "./web/env.ts";
-export type { WebDeps } from "./web/deps.ts";
+export { CachePurgeFailedError, type CachePurger, type WebDeps } from "./web/deps.ts";
 export { createApp } from "./web/app.tsx";
 
 // エッジのキャッシュ (Cloudflare Workers Cache) 向けの目安のヘッダ (Issue #25)。

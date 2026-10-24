@@ -9,6 +9,29 @@ import type { TurnService } from "../app/turn-service.ts";
 import type { AppConfig } from "../bootstrap/config-from-env.ts";
 import type { createAuth } from "../bootstrap/auth.ts";
 
+/**
+ * エッジのキャッシュ (Cloudflare 版の Workers Cache) を消す。サイト設定の変更やゲームの開始・
+ * 終了など、キャッシュした全ページの内容が変わる稀なイベントのあとに呼ぶ。失敗しても例外を
+ * 投げない (ログに残し、管理操作自体は成功させる)。
+ */
+export interface CachePurger {
+  purgeAll(reason: string): Promise<void>;
+}
+
+/**
+ * バックアップ復元の前の purge が失敗したとき。復元は行っていない。
+ * 管理画面はこのエラーを受けて、復元を中止した旨を表示する。
+ */
+export class CachePurgeFailedError extends Error {
+  readonly reason: string;
+
+  constructor(reason: string) {
+    super(`cache purge failed: ${reason}`);
+    this.name = "CachePurgeFailedError";
+    this.reason = reason;
+  }
+}
+
 /** `createApp` に渡す依存一式。ランタイム非依存 (node:* や cloudflare:* を含まない)。 */
 export interface WebDeps {
   gameService: GameService;
@@ -45,4 +68,6 @@ export interface WebDeps {
    * Cloudflare 版だけが使う (省略時は false)。
    */
   sessionCookieCache?: boolean;
+  /** エッジのキャッシュを消す (Cloudflare 版だけ。省略時は何もしない)。 */
+  cachePurger?: CachePurger;
 }

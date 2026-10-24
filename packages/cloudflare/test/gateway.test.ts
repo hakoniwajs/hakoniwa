@@ -208,7 +208,7 @@ describe("CachedPages (ctx.exports から直接呼ぶ)", () => {
     expect(games.headers.get("cache-tag")).toBe("games");
   });
 
-  it("過去のゲームのページは 1 日。存在しないページはキャッシュさせない", async () => {
+  it("過去のゲームのページは immutable。存在しないページはキャッシュさせない", async () => {
     const { cookie, csrfToken } = await loginAsAdmin();
     await startGame(cookie, csrfToken);
     const stub = mainGameStub();
@@ -217,11 +217,17 @@ describe("CachedPages (ctx.exports から直接呼ぶ)", () => {
       headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
       body: `confirm=on&_csrf=${encodeURIComponent(csrfToken)}`,
     });
+    // 終了済みの現在のゲームのトップは、資金の最大化で順位表が変わるため immutable にしない。
+    const finishedTop = await cachedPages(ANONYMOUS).fetch("http://example.com/games/1");
+    expect(finishedTop.status).toBe(200);
+    expect(finishedTop.headers.get("cache-control")).toBe(
+      "public, max-age=60, stale-while-revalidate=60",
+    );
     await startGame(cookie, csrfToken);
 
     const past = await cachedPages(ANONYMOUS).fetch("http://example.com/games/1");
     expect(past.status).toBe(200);
-    expect(past.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(past.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
 
     const missing = await cachedPages(ANONYMOUS).fetch("http://example.com/games/99");
     expect(missing.status).not.toBe(200);

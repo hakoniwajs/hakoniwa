@@ -11,7 +11,7 @@ sidebar:
   <Tab title="Cloudflare">
     Durable Objects (SQLite) の **Point-in-Time Recovery** を使います。バックアップを作成すると、その時点のブックマークが保存され、あとからその時点の状態に巻き戻せます。
 
-    復元すると Durable Object が再起動するため、「復元を予約しました。数秒後に再読み込みしてください」という案内が表示されます。数秒待ってからページを再読み込みしてください。
+    復元すると Durable Object が再起動するため、「復元しました。再読み込みしてください。」という案内が表示されます。数秒待ってからページを再読み込みしてください。
 
     Point-in-Time Recovery で戻せるのは過去 30 日以内の時点です。
   </Tab>
@@ -23,5 +23,5 @@ sidebar:
 </Tabs>
 
 :::warning
-Cloudflare 版はページを [Workers Cache](/development/cache) にキャッシュするため、復元前の内容が最大 60 秒ほど (過去のゲームのページは最大 1 日) 表示されることがあります。
+Cloudflare 版はページを [Workers Cache](/development/cache) にキャッシュしています。復元の前にキャッシュを削除 (purge) し、削除できなかった場合は復元を中止します。管理画面に中止の案内が出たときは、しばらくしてからもう一度復元してください。
 :::

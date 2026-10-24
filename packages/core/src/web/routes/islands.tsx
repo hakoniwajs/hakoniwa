@@ -72,10 +72,12 @@ export function createIslandsRoutes(deps: WebDeps): Hono<AppEnv> {
     const origin = resolveOrigin(deps, c.req.url);
     const site = deps.siteSettings.get();
     const { game, season } = deps.gameService.getGameState(gameId);
-    setCacheHint(c, deps, pageCacheDirectives({ game, season, now: deps.clock.now() }), [
-      gameCacheTag(gameId),
-      islandCacheTag(gameId, id),
-    ]);
+    setCacheHint(
+      c,
+      deps,
+      pageCacheDirectives({ page: "island", game, season, now: deps.clock.now() }),
+      [gameCacheTag(gameId), islandCacheTag(gameId, id)],
+    );
     return renderPage(
       c,
       deps,

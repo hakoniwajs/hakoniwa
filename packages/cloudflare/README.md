@@ -52,7 +52,7 @@ export default createWorker();
 
 - `createWorker(options?)` — `fetch`/`scheduled` を持つ Worker オブジェクト (Gateway) を返します。`options.doBinding` で DO バインディング名を `GAME` 以外に変更できます。
 - `HakoniwaGame` — Durable Object クラス (上記の通り再エクスポート必須)。
-- `CachedPages` — [Workers Cache](https://developers.cloudflare.com/workers/cache/) を有効にする内側のエントリポイント (上記の通り再エクスポート必須)。Gateway が `ctx.exports` 経由で呼び、キャッシュしてよい応答だけをここで DO から取得します。再エクスポートしていない場合は、キャッシュを使わずに DO へ直接転送します。
+- `CachedPages` — [Workers Cache](https://developers.cloudflare.com/workers/cache/) を有効にする内側のエントリポイント (上記の通り再エクスポート必須)。Gateway が `ctx.exports` 経由で呼び、キャッシュしてよい応答だけをここで DO から取得します。サイト設定の変更などのときは、DO が RPC (`purgeEverything`) でこのエントリポイントのキャッシュを消します。再エクスポートしていない場合は、キャッシュを使わずに DO へ直接転送します。
 - `createCachedPages(options?)` — `doBinding` などを変えた場合に使います。`createWorker` と同じオプションを渡し、`export const CachedPages = createCachedPages({ doBinding: "..." })` のように export してください。
 
 ## License

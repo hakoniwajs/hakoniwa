@@ -9,6 +9,10 @@
 //
 // ページの内容はゲームの状態で決まり、ターン進行 (次のターンの予定時刻) を跨ぐと変わる。
 // そのため進行中のゲームは「次のターンまでの秒数 (上限 60 秒)」だけキャッシュさせる。
+// 内容がもう変わらないページ (過去のゲーム) は長期 (immutable) にする。終了済みの現在の
+// ゲームは、トップでも資金の最大化などで順位表が変わるため 60 秒に留める。サイト設定の変更・
+// ゲームの開始/終了・データの削除・ゲーム設定・手動ターン・資金の最大化・バックアップの復元の
+// ときは、Adapter がキャッシュ全体を purge する (`WebDeps.cachePurger`)。
 import type { Context } from "hono";
 import type { SeasonVM } from "../app/season.ts";
 import type { GameHeaderVM } from "../app/view-models.ts";
@@ -24,13 +28,12 @@ export const CACHE_TAG_HINT_HEADER = "X-Hakoniwa-Cache-Tag";
 export const SHORT_CACHE_MAX_AGE_SEC = 60;
 /** 期限切れ後に古い応答を返しつつ裏で更新してよい期間 (秒)。 */
 export const STALE_WHILE_REVALIDATE_SEC = 60;
-/**
- * 過去のゲーム (現在のゲームではない) のページをキャッシュする期間 (秒)。ゲームの内容は
- * 変わらないが、サイト設定 (タイトル・フッタ) は管理画面から変わるため 1 日にしている。
- */
-export const PAST_GAME_MAX_AGE_SEC = 60 * 60 * 24;
+/** 内容がもう変わらないページのキャッシュ期間 (1 年)。 */
+export const IMMUTABLE_MAX_AGE_SEC = 60 * 60 * 24 * 365;
 
 export interface PageCacheHintInput {
+  /** トップ・観光・開発画面のどれか。 */
+  page: "top" | "island" | "owner";
   game: GameHeaderVM;
   season: SeasonVM;
   /** 現在の unix 秒。 */
@@ -45,17 +48,19 @@ function shortDirectives(maxAgeSec: number): string {
  * ゲームごとのページ (トップ・観光・開発画面) をキャッシュしてよい期間。キャッシュさせない
  * 場合は `undefined`。
  *
- * - 過去のゲーム: `max-age=86400` (ゲームの内容は変わらない)
+ * - 過去のゲーム: `max-age=31536000, immutable` (記帳も更新もできず、内容は変わらない)
+ * - 終了済み (現在のゲーム): トップ・観光・開発画面とも 60 秒。トップの順位表は資金・食料の
+ *   最大化で変わるため、1 年の immutable にはしない (purge に失敗しても 60 秒で消える)
+ * - 終了済みの観光・開発画面は記帳も入りうる
  * - 開始前・進行中: 次のターン (開始前はゲーム開始) までの秒数。上限 60 秒。予定時刻を
  *   過ぎていれば (次のリクエストでターンが進むため) キャッシュさせない
- * - 終了済み (現在のゲーム): 60 秒 (記帳が入りうる。新しいゲームが始まると表示も変わる)
  *
- * 期限切れ後の `stale-while-revalidate` は 60 秒 (過去のゲーム以外)。
+ * 期限切れ後の `stale-while-revalidate` は 60 秒 (immutable 以外)。
  */
 export function pageCacheDirectives(input: PageCacheHintInput): string | undefined {
   const { game, season, now } = input;
   if (!game.isCurrent) {
-    return `max-age=${PAST_GAME_MAX_AGE_SEC}`;
+    return `max-age=${IMMUTABLE_MAX_AGE_SEC}, immutable`;
   }
   const until =
     season.state === "before"

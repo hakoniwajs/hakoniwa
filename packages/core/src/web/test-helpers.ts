@@ -21,7 +21,7 @@ import { defaultConfig } from "../core/config.ts";
 import type { GameConfig } from "../core/config.ts";
 import { createSeededRng } from "../core/rng.ts";
 import { createApp } from "./app.tsx";
-import type { WebDeps } from "./deps.ts";
+import type { CachePurger, WebDeps } from "./deps.ts";
 
 export const INITIAL_CLOCK = 1_000_000;
 
@@ -154,6 +154,8 @@ export interface SetupOptions {
   authMethodsConfigured?: Partial<AuthMethodsFlags>;
   /** `WebDeps.cacheHints` (エッジのキャッシュの目安のヘッダ)。省略時は false (Node 版と同じ)。 */
   cacheHints?: boolean;
+  /** `WebDeps.cachePurger`。省略時は無し (Node 版と同じ)。 */
+  cachePurger?: CachePurger;
 }
 
 export interface TestApp {
@@ -245,6 +247,7 @@ export function setupTestApp(options: SetupOptions = {}): TestApp {
     auth: auth as unknown as WebDeps["auth"],
     logger,
     cacheHints: options.cacheHints ?? false,
+    ...(options.cachePurger !== undefined ? { cachePurger: options.cachePurger } : {}),
   };
   const app = createApp(deps);
 

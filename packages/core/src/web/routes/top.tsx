@@ -45,7 +45,12 @@ export function createGameTopRoutes(deps: WebDeps): Hono<AppEnv> {
     setCacheHint(
       c,
       deps,
-      pageCacheDirectives({ game: vm.game, season: vm.season, now: deps.clock.now() }),
+      pageCacheDirectives({
+        page: "top",
+        game: vm.game,
+        season: vm.season,
+        now: deps.clock.now(),
+      }),
       [gameCacheTag(gameId)],
     );
     return renderPage(
