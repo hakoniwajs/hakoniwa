@@ -3,6 +3,7 @@
 import { Hono } from "hono";
 import type { WebDeps } from "../deps.ts";
 import type { AppEnv } from "../env.ts";
+import { gameCacheTag, pageCacheDirectives, setCacheHint } from "../cache-hint.ts";
 import { renderPage } from "./render.tsx";
 import { requireGameIdParam } from "./helpers.ts";
 import { NoGamePage, TopPage } from "../views/top.tsx";
@@ -41,6 +42,12 @@ export function createGameTopRoutes(deps: WebDeps): Hono<AppEnv> {
     const vm = deps.gameService.getTopPage(c.get("user"), gameId);
     // app.onError の no_island リダイレクト (`/games/:id?notice=no_island`) を受けての通知表示。
     const notice = c.req.query("notice") === "no_island" ? errorMessage("no_island") : undefined;
+    setCacheHint(
+      c,
+      deps,
+      pageCacheDirectives({ game: vm.game, season: vm.season, now: deps.clock.now() }),
+      [gameCacheTag(gameId)],
+    );
     return renderPage(
       c,
       deps,
@@ -48,7 +55,6 @@ export function createGameTopRoutes(deps: WebDeps): Hono<AppEnv> {
         vm={vm}
         config={deps.config.game}
         timezone={deps.siteSettings.get().timezone}
-        now={deps.clock.now()}
         csrfToken={c.get("csrfToken")}
         notice={notice}
       />,

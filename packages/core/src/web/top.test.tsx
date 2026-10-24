@@ -301,8 +301,11 @@ describe("tmp/16-season.md: トップの3状態 (開始前/進行中/終了)", (
     expect(html).toContain("<h2>ターン 1 / 10</h2>");
     expect(html).toContain('<table class="turn-info">');
     expect(html).toContain("<th>次のターン</th>");
-    // unitTimeSec は既定の 21600 秒 (6時間)、lastTime === startAt === now なので残り時間はちょうど 6時間。
-    expect(html).toContain("(あと 6時間)");
+    // 残り時間は HTML に埋め込まず、予定時刻 (unitTimeSec は既定の 21600 秒、lastTime === now) を
+    // data-remaining-until に置いて /remaining.js がブラウザで表示する (エッジでキャッシュするため)。
+    expect(html).toContain(`data-remaining-until="${INITIAL_CLOCK + 21600}"`);
+    expect(html).toContain('<script src="/remaining.js" defer=""></script>');
+    expect(html).not.toContain("(あと ");
     expect(html).toContain("<th>ターン間隔</th>");
     expect(html).toContain("<td>6時間</td>");
     expect(html).not.toContain("結果発表");
@@ -334,8 +337,9 @@ describe("tmp/16-season.md: トップの3状態 (開始前/進行中/終了)", (
     expect(html).not.toContain("ターン 1");
     expect(html).toContain('<table class="turn-info">');
     expect(html).toContain("<th>ゲーム開始</th>");
-    // 10000秒 = 2時間46分 (0の単位は省略、「あと」の後に半角空白)。
-    expect(html).toContain("(あと 2時間 46分)");
+    // 残り時間はゲーム開始の予定時刻から /remaining.js がブラウザで計算する。
+    expect(html).toContain(`data-remaining-until="${futureStart}"`);
+    expect(html).not.toContain("(あと ");
     expect(html).toContain("<th>ターン間隔</th>");
     expect(html).not.toContain("<th>次のターン</th>");
     expect(html).not.toContain("結果発表");

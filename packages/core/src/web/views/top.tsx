@@ -2,7 +2,7 @@
 // tmp/14-users-auth.md によりパスワード関連フォームを撤去し、ログイン状態で出し分ける。
 import type { GameConfig } from "../../core/config.ts";
 import { monsters } from "../../core/constants.ts";
-import { formatDuration, formatRemaining, GAME_NOT_STARTED_LABEL } from "../../app/format.ts";
+import { formatDuration, GAME_NOT_STARTED_LABEL } from "../../app/format.ts";
 import type { SeasonVM } from "../../app/season.ts";
 import { formatDateTime } from "../../app/timezone.ts";
 import type { GameHeaderVM, IslandRowVM, TopPageVM } from "../../app/view-models.ts";
@@ -239,21 +239,23 @@ function GameHeading({ game }: { game: GameHeaderVM }) {
 }
 
 /**
+ * 予定時刻までの残り時間 (「 (あと N時間 M分)」)。HTML はエッジでキャッシュするため、
+ * リクエスト時刻に依存する残り時間は埋め込まず、予定時刻 (unix 秒) を `data-remaining-until` に
+ * 置き、`/remaining.js` がブラウザの現在時刻で計算して表示する (app/format.ts の
+ * formatRemaining と同じ表記)。JavaScript が無効なら予定時刻 (絶対時刻) だけが表示される。
+ */
+function RemainingTime({ until }: { until: number }) {
+  return <span class="remaining" data-remaining-until={String(until)}></span>;
+}
+
+/**
  * ターン見出し。tmp/16-season.md「表示」節: 開始前/進行中/終了で出し分ける。
  * 「トップと管理画面のターン表示」節: 見出しを「ターン N / 最終ターン M」(最終ターン無しなら
  * 「ターン N」) の 1 行にまとめ、次のターン (または開始日時) の予定・残り時間とターン間隔は
  * 罫線なしの `table.turn-info` にまとめて表示する。
  * tmp/18-games.md: h1 はゲーム名 (GameHeading) にしたため、こちらは h2 に格下げした。
  */
-function SeasonHeading({
-  season,
-  now,
-  timezone,
-}: {
-  season: SeasonVM;
-  now: number;
-  timezone: string;
-}) {
+function SeasonHeading({ season, timezone }: { season: SeasonVM; timezone: string }) {
   if (season.state === "finished") {
     // tmp/16-season.md「表記の原則 (ユーザー指示 2026-09-20)」: finishedAtTurn が 0 (ゲーム開始前に
     // 終了した) なら「ターン 0」を出さず「ゲーム開始前に終了」と表記する。
@@ -282,15 +284,16 @@ function SeasonHeading({
           <tr>
             <th>ゲーム開始</th>
             <td>
-              {formatDateTime(season.startAt, timezone)} ({formatRemaining(season.startAt - now)})
+              {formatDateTime(season.startAt, timezone)}
+              <RemainingTime until={season.startAt} />
             </td>
           </tr>
         ) : season.nextTurnAt !== null ? (
           <tr>
             <th>次のターン</th>
             <td>
-              {formatDateTime(season.nextTurnAt, timezone)} (
-              {formatRemaining(season.nextTurnAt - now)})
+              {formatDateTime(season.nextTurnAt, timezone)}
+              <RemainingTime until={season.nextTurnAt} />
             </td>
           </tr>
         ) : (
@@ -301,6 +304,7 @@ function SeasonHeading({
           <td>{formatDuration(season.unitTimeSec)}</td>
         </tr>
       </table>
+      <script src="/remaining.js" defer></script>
     </>
   );
 }
@@ -309,13 +313,11 @@ export interface TopPageProps {
   vm: TopPageVM;
   config: GameConfig;
   timezone: string;
-  /** 表示時点の unix 秒。次のターンまでの残り時間の計算に使う。 */
-  now: number;
   csrfToken?: string | undefined;
   notice?: string | undefined;
 }
 
-export function TopPage({ vm, config, timezone, now, csrfToken, notice }: TopPageProps) {
+export function TopPage({ vm, config, timezone, csrfToken, notice }: TopPageProps) {
   const showMoneyColumn = config.hideMoneyMode !== 0;
   return (
     <div class="top-page">
@@ -331,7 +333,7 @@ export function TopPage({ vm, config, timezone, now, csrfToken, notice }: TopPag
       )}
 
       <GameHeading game={vm.game} />
-      <SeasonHeading season={vm.season} now={now} timezone={timezone} />
+      <SeasonHeading season={vm.season} timezone={timezone} />
 
       <hr />
       <MyIslandSection vm={vm} csrfToken={csrfToken} />

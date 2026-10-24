@@ -33,4 +33,10 @@ export interface WebDeps {
   auth: ReturnType<typeof createAuth>;
   /** better-auth の APIError 等、想定内だがログに残したいエラーの記録先。 */
   logger: Logger;
+  /**
+   * true なら、エッジでキャッシュしてよいページの応答に目安のヘッダ
+   * (`X-Hakoniwa-Cache-Control` / `X-Hakoniwa-Cache-Tag`。web/cache-hint.ts) を付ける。
+   * Cloudflare 版だけが使う (省略時は付けない)。
+   */
+  cacheHints?: boolean;
 }
