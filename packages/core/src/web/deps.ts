@@ -18,6 +18,20 @@ export interface CachePurger {
   purgeAll(reason: string): Promise<void>;
 }
 
+/**
+ * バックアップ復元の前の purge が失敗したとき。復元は行っていない。
+ * 管理画面はこのエラーを受けて、復元を中止した旨を表示する。
+ */
+export class CachePurgeFailedError extends Error {
+  readonly reason: string;
+
+  constructor(reason: string) {
+    super(`cache purge failed: ${reason}`);
+    this.name = "CachePurgeFailedError";
+    this.reason = reason;
+  }
+}
+
 /** `createApp` に渡す依存一式。ランタイム非依存 (node:* や cloudflare:* を含まない)。 */
 export interface WebDeps {
   gameService: GameService;

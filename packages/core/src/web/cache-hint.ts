@@ -9,9 +9,10 @@
 //
 // ページの内容はゲームの状態で決まり、ターン進行 (次のターンの予定時刻) を跨ぐと変わる。
 // そのため進行中のゲームは「次のターンまでの秒数 (上限 60 秒)」だけキャッシュさせる。
-// 内容がもう変わらないページ (過去のゲーム・終了済みのゲームのトップ) は長期 (immutable) に
-// する。サイト設定の変更・ゲームの開始/終了・データの削除・バックアップの復元のときは、
-// Adapter がキャッシュ全体を purge する (`WebDeps.cachePurger`)。
+// 内容がもう変わらないページ (過去のゲーム) は長期 (immutable) にする。終了済みの現在の
+// ゲームは、トップでも資金の最大化などで順位表が変わるため 60 秒に留める。サイト設定の変更・
+// ゲームの開始/終了・データの削除・ゲーム設定・手動ターン・資金の最大化・バックアップの復元の
+// ときは、Adapter がキャッシュ全体を purge する (`WebDeps.cachePurger`)。
 import type { Context } from "hono";
 import type { SeasonVM } from "../app/season.ts";
 import type { GameHeaderVM } from "../app/view-models.ts";
@@ -47,18 +48,18 @@ function shortDirectives(maxAgeSec: number): string {
  * ゲームごとのページ (トップ・観光・開発画面) をキャッシュしてよい期間。キャッシュさせない
  * 場合は `undefined`。
  *
- * - 過去のゲーム: `max-age=31536000, immutable` (記帳もできず、内容は変わらない)
- * - 終了済み (現在のゲーム) のトップ: 同上 (掲示板はトップに出ないので変わらない。新しい
- *   ゲームが始まると表示が変わるが、そのときは purge する)
- * - 終了済み (現在のゲーム) の観光・開発画面: 60 秒 (記帳が入りうる)
+ * - 過去のゲーム: `max-age=31536000, immutable` (記帳も更新もできず、内容は変わらない)
+ * - 終了済み (現在のゲーム): トップ・観光・開発画面とも 60 秒。トップの順位表は資金・食料の
+ *   最大化で変わるため、1 年の immutable にはしない (purge に失敗しても 60 秒で消える)
+ * - 終了済みの観光・開発画面は記帳も入りうる
  * - 開始前・進行中: 次のターン (開始前はゲーム開始) までの秒数。上限 60 秒。予定時刻を
  *   過ぎていれば (次のリクエストでターンが進むため) キャッシュさせない
  *
  * 期限切れ後の `stale-while-revalidate` は 60 秒 (immutable 以外)。
  */
 export function pageCacheDirectives(input: PageCacheHintInput): string | undefined {
-  const { page, game, season, now } = input;
-  if (!game.isCurrent || (season.state === "finished" && page === "top")) {
+  const { game, season, now } = input;
+  if (!game.isCurrent) {
     return `max-age=${IMMUTABLE_MAX_AGE_SEC}, immutable`;
   }
   const until =

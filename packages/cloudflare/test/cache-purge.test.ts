@@ -2,7 +2,8 @@
 // テスト環境 (miniflare) には purge の API が無いため、CachedPages は unsupported を返す。
 // DO 側の DurableObjectCachePurger は、ctx.exports を差し替えて成功・失敗の扱いを確かめる。
 import { exports } from "cloudflare:workers";
-import { FakeSettingsRepository } from "@hakoniwajs/core";
+import { CachePurgeFailedError, FakeSettingsRepository } from "@hakoniwajs/core";
+import { BookmarkBackupStore } from "../src/backup.ts";
 import { reset } from "cloudflare:test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CachePurgeOutcome } from "../src/cached-pages.ts";
@@ -107,6 +108,65 @@ describe("DurableObjectCachePurger", () => {
     );
     await purger.retryPending();
     expect(calls).toBe(0);
+  });
+});
+
+function restoreCtx(log: string[]): DurableObjectState {
+  return {
+    blockConcurrencyWhile: async (fn: () => Promise<void>) => {
+      log.push("block");
+      await fn();
+    },
+    storage: {
+      sql: {
+        exec: () => ({ toArray: () => [{ bookmark: "bookmark-1" }] }),
+      },
+      onNextSessionRestoreBookmark: async (bookmark: string) => {
+        log.push(`schedule:${bookmark}`);
+      },
+    },
+    abort: (reason?: string) => {
+      log.push(`abort:${reason ?? ""}`);
+    },
+  } as unknown as DurableObjectState;
+}
+
+describe("BookmarkBackupStore.restore", () => {
+  it("purge に失敗したら復元を予約せず、再起動もしない", async () => {
+    const log: string[] = [];
+    const purger = new DurableObjectCachePurger(
+      fakeState(async () => ({
+        success: false,
+        errors: [{ code: 1015, message: "rate limited" }],
+      })),
+      new FakeSettingsRepository(),
+    );
+    const store = new BookmarkBackupStore(restoreCtx(log), purger);
+    await expect(store.restore("manual-1")).rejects.toBeInstanceOf(CachePurgeFailedError);
+    expect(log).toEqual(["block"]);
+    expect(purger.pendingReason()).toBeUndefined();
+  });
+
+  it("purge の API が無くても復元する (キャッシュが無い環境)", async () => {
+    const log: string[] = [];
+    const purger = new DurableObjectCachePurger(
+      fakeState(async () => ({ success: false, unsupported: true, errors: [] })),
+      new FakeSettingsRepository(),
+    );
+    const store = new BookmarkBackupStore(restoreCtx(log), purger);
+    await store.restore("manual-1");
+    expect(log).toEqual(["block", "schedule:bookmark-1", "abort:hakoniwa: restoring backup"]);
+  });
+
+  it("purge に成功したら復元を予約して再起動する", async () => {
+    const log: string[] = [];
+    const purger = new DurableObjectCachePurger(
+      fakeState(async () => ({ success: true, errors: [] })),
+      new FakeSettingsRepository(),
+    );
+    const store = new BookmarkBackupStore(restoreCtx(log), purger);
+    await store.restore("manual-1");
+    expect(log).toEqual(["block", "schedule:bookmark-1", "abort:hakoniwa: restoring backup"]);
   });
 });
 

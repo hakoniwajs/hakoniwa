@@ -217,6 +217,12 @@ describe("CachedPages (ctx.exports から直接呼ぶ)", () => {
       headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
       body: `confirm=on&_csrf=${encodeURIComponent(csrfToken)}`,
     });
+    // 終了済みの現在のゲームのトップは、資金の最大化で順位表が変わるため immutable にしない。
+    const finishedTop = await cachedPages(ANONYMOUS).fetch("http://example.com/games/1");
+    expect(finishedTop.status).toBe(200);
+    expect(finishedTop.headers.get("cache-control")).toBe(
+      "public, max-age=60, stale-while-revalidate=60",
+    );
     await startGame(cookie, csrfToken);
 
     const past = await cachedPages(ANONYMOUS).fetch("http://example.com/games/1");

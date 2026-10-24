@@ -82,12 +82,9 @@ describe("pageCacheDirectives", () => {
     ).toBeUndefined();
   });
 
-  it("終了済み (現在のゲーム) のトップは immutable、観光・開発画面は 60 秒 (記帳が入りうる)", () => {
+  it("終了済み (現在のゲーム) はトップも 60 秒 (順位表が資金の最大化で変わる)", () => {
     const finished = season({ state: "finished", status: "finished", nextTurnAt: null });
-    expect(pageCacheDirectives({ page: "top", game: game(true), season: finished, now: NOW })).toBe(
-      "max-age=31536000, immutable",
-    );
-    for (const page of ["island", "owner"] as const) {
+    for (const page of ["top", "island", "owner"] as const) {
       expect(pageCacheDirectives({ page, game: game(true), season: finished, now: NOW })).toBe(
         "max-age=60, stale-while-revalidate=60",
       );
@@ -164,7 +161,7 @@ describe("応答の目安のヘッダ", () => {
 });
 
 describe("管理操作のあとのキャッシュの purge (WebDeps.cachePurger)", () => {
-  it("サイト設定・ゲームの終了/開始・データの削除のあとに呼ぶ。それ以外の操作では呼ばない", async () => {
+  it("表示が変わる管理操作のあとに呼び、ログイン方法や管理者の追加では呼ばない", async () => {
     const reasons: string[] = [];
     const testApp = setupTestApp({
       adminEmails: ["admin@example.com"],
@@ -182,19 +179,43 @@ describe("管理操作のあとのキャッシュの purge (WebDeps.cachePurger)
     const post = (path: string, fields: Record<string, string> = {}) =>
       postForm(testApp.app, path, { _csrf: admin.csrfToken, ...fields }, { cookie: admin.cookie });
 
+    expect((await post("/admin/auth-methods", { email: "on" })).status).toBe(200);
+    expect((await post("/admin/admins", { email: "extra@example.com" })).status).toBe(200);
+    expect(reasons).toEqual([]);
+
     expect((await post("/admin/site-settings", { title: "しま", timezone: "UTC" })).status).toBe(
       200,
     );
+    expect((await post("/admin/last-time", { unix: "1000000" })).status).toBe(200);
+    expect(
+      (await post("/admin/unit-time", { "unit-hours": "1", "unit-minutes": "0" })).status,
+    ).toBe(200);
+    expect((await post("/admin/final-turn", { "final-turn": "20" })).status).toBe(200);
     expect((await post("/admin/turn")).status).toBe(200);
+    expect((await post("/games/1/islands", { name: "てすとじま" })).status).toBeGreaterThanOrEqual(
+      200,
+    );
+    expect((await post("/admin/maximize", { id: "1" })).status).toBe(200);
     expect((await post("/admin/games/current/finish", { confirm: "on" })).status).toBe(200);
     expect((await post("/admin/games")).status).toBe(200);
     expect((await post("/admin/reset")).status).toBe(200);
-    expect(reasons).toEqual(["site-settings", "finish-game", "start-game", "reset"]);
+    expect(reasons).toEqual([
+      "site-settings",
+      "last-time",
+      "unit-time",
+      "final-turn",
+      "advance-turn",
+      "maximize",
+      "finish-game",
+      "start-game",
+      "reset",
+    ]);
 
-    // 失敗した操作 (進行中のゲームがあるのに開始) では呼ばない。
+    // 失敗した操作 (進行中のゲームがあるのに開始、島が無い最大化) では呼ばない。
     reasons.length = 0;
     await post("/admin/games");
     await post("/admin/games");
+    await post("/admin/maximize", { id: "1" });
     expect(reasons).toEqual(["start-game"]);
   });
 });
