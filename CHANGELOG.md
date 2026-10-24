@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.1.5](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.4...v0.1.5) - 2026-10-24
+
+- テンプレート追従で npm registry への反映待ちがタイムアウトしないようにする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/23
+- Worker を Gateway と Workers Cache 用の CachedPages エントリポイントに分割する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/26
+- 未ログインの HTML を Workers Cache にキャッシュし、KV スナップショットを無くす by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/27
+- ログイン中のページもセッションごとに Workers Cache にキャッシュする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/28
+- 稀なイベントで Workers Cache を purge する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/29
+
 ## [v0.1.4](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.3...v0.1.4) - 2026-09-26
 
 - Blume 製のドキュメントサイトを追加し GitHub Pages で公開する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/15
