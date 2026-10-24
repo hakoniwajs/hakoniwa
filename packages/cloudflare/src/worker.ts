@@ -1,13 +1,15 @@
 // tmp/12-workers-adapter.md 「Worker エントリ」節の実装。
-// Worker は基本的にすべてのリクエストを単一の DO (`GAME.getByName('main')`) へ転送するだけ。
-// 静的アセット (images/style.css/owner.js) は wrangler.jsonc の assets 設定により
-// この fetch より先に Workers Static Assets が応答する。
+// Worker (default エントリポイント = Gateway) は基本的にすべてのリクエストを単一の DO
+// (`GAME.getByName('main')`) へ転送するだけ。静的アセット (images/style.css/owner.js) は
+// wrangler.jsonc の assets 設定によりこの fetch より先に Workers Static Assets が応答する。
 //
-// tmp/17-ogp.md 「キャッシュ」節 (方針変更): Cache API (`caches.default`) を自前で呼ぶ実装は
-// 使わない。代わりに Workers Cache (`wrangler.jsonc` の `cache.enabled`) を使う。これは
-// 応答の `Cache-Control` に従って Cloudflare 側が自動でキャッシュする機能で、workers.dev でも
-// 有効。応答ごとの `Cache-Control` (OGP 画像は `public, max-age=3600` 等、それ以外は
-// `private, no-store`) は `packages/core/src/web/app.tsx` の
+// Workers Cache (Issue #25): Gateway 自体はキャッシュを無効にし (wrangler.jsonc の `exports`)、
+// キャッシュしてよいリクエストだけを、キャッシュを有効にした内側のエントリポイント
+// `CachedPages` (cached-pages.ts) へ `ctx.exports` 経由で渡す。どのリクエストを渡すか、
+// props・キャッシュキー・ブラウザへ返すヘッダは cache-policy.ts の純粋な関数で決める。
+// 現在 CachedPages 経由にしているのは OGP 画像 (`/games/:gameId/islands/:id/ogp.png`) だけで、
+// それ以外は DO へ直接転送する。応答ごとの `Cache-Control` (OGP 画像は `public, max-age=...`、
+// それ以外は `private, no-store`) は `packages/core/src/web/app.tsx` の
 // `defaultCacheControlMiddleware` / `routes/islands.tsx` が付ける。
 //
 // tmp/21-kv-snapshot-cache.md: 未ログイン (セッション Cookie 無し) の GET `/games/:gameId`
@@ -20,6 +22,11 @@
 // 環境変数からは読まず、DO の `pageSnapshot` が返したものを KV (`siteSnapshotKey()`、短期 TTL) に
 // 置いて使う。View Model とサイト設定の両方が KV にあるときだけ hit として KV から応答する。
 import { renderIslandPageHtml, renderTopPageHtml } from "@hakoniwajs/core";
+import { CachedPages } from "./cached-pages.ts";
+import { CACHED_PAGES_ENTRYPOINT, planGatewayRequest, toBrowserResponse } from "./cache-policy.ts";
+import type { CachedPagesProps } from "./cache-policy.ts";
+import { getGame, resolveGameStubOptions } from "./do-stub.ts";
+import type { GameStubOptions } from "./do-stub.ts";
 import type { Env } from "./env.ts";
 import { HakoniwaGame, loadWorkerConfig } from "./game-object.ts";
 import {
@@ -35,39 +42,8 @@ import type {
   TopPageSnapshotEnvelope,
 } from "./snapshot.ts";
 
-/** `createWorker` のオプション。 */
-export interface CreateWorkerOptions {
-  /**
-   * wrangler.jsonc の `durable_objects.bindings` の binding 名 (既定 `"GAME"`)。
-   * `class_name` は `HakoniwaGame` 固定で、このパッケージから再エクスポートされる。
-   */
-  doBinding?: string;
-  /**
-   * DO の初回作成時の location hint (既定 `"apac-ne"` (北東アジア)。プレイヤーは日本在住が
-   * 中心のため)。効くのは DO の **初回作成時のみ** でベストエフォート。既存の DO は移動しない。
-   * 変更する場合は次のいずれかから選ぶ: wnam, enam, sam, weur, eeur, apac, apac-ne, apac-se, oc, afr, me
-   * (参考: https://developers.cloudflare.com/durable-objects/reference/data-location/#provide-a-location-hint)
-   */
-  locationHint?: DurableObjectLocationHint;
-}
-
-// DO の取得に location hint `apac-ne` (北東アジア) を指定する。
-// 注意:
-// - location hint が効くのは DO の **初回作成時のみ** で、ベストエフォート。既存の DO は移動しない。
-// - プレイヤーは日本在住が中心のため `apac-ne` を選択している。
-function getGame(env: Env, options: Required<CreateWorkerOptions>) {
-  // binding 名は options.doBinding で変えられるため Env のプロパティを動的に引く。
-  const namespace = (env as unknown as Record<string, unknown>)[options.doBinding] as
-    | DurableObjectNamespace<HakoniwaGame>
-    | undefined;
-  if (namespace === undefined) {
-    throw new Error(
-      `hakoniwa: wrangler.jsonc の durable_objects.bindings に name: "${options.doBinding}" (class_name: "HakoniwaGame") がありません`,
-    );
-  }
-  const id = namespace.idFromName("main");
-  return namespace.get(id, { locationHint: options.locationHint });
-}
+/** `createWorker` のオプション。`createCachedPages` にも同じ値を渡す。 */
+export type CreateWorkerOptions = GameStubOptions;
 
 /** `/games/:gameId` (トップ)。 */
 const TOP_PATH = /^\/games\/([0-9]+)$/;
@@ -128,7 +104,7 @@ async function tryServeFromSnapshot(
   request: Request,
   env: Env,
   ctx: ExecutionContext,
-  options: Required<CreateWorkerOptions>,
+  options: Required<GameStubOptions>,
 ): Promise<Response | undefined> {
   const snapshot = env.SNAPSHOT;
   if (request.method !== "GET" || snapshot === undefined || hasSessionCookie(request)) {
@@ -224,6 +200,20 @@ async function tryServeFromSnapshot(
   return snapshotResponse(html, "miss");
 }
 
+/** `ctx.exports.CachedPages` (props 付きで呼べるループバックのサービスバインディング)。 */
+type CachedPagesLoopback = (options: { props: CachedPagesProps }) => Fetcher;
+
+/**
+ * `ctx.exports` から CachedPages を取り出す。利用側のエントリが `CachedPages` を
+ * 再エクスポートしていない (古い設定のまま) 場合は `undefined` を返し、呼び出し側は
+ * キャッシュを使わずに DO へ直接転送する。
+ */
+function cachedPagesOf(ctx: ExecutionContext): CachedPagesLoopback | undefined {
+  const exports = (ctx as { exports?: unknown }).exports as Record<string, unknown> | undefined;
+  const loopback = exports?.[CACHED_PAGES_ENTRYPOINT];
+  return typeof loopback === "function" ? (loopback as CachedPagesLoopback) : undefined;
+}
+
 /**
  * `createWorker()` が返す Worker オブジェクト。fetch/scheduled を持つ。
  * `ExportedHandler<Env>` 相当だが、`Request` は素の DOM 型のままにする
@@ -236,26 +226,34 @@ export interface HakoniwaWorker {
 }
 
 /**
- * 箱庭諸島２の Worker エントリを組み立てるファクトリ。
- * 利用側は次の 3 行で Worker を構成できる (DO クラスは wrangler.jsonc の class_name で
- * 名前解決されるため、利用側のエントリから再エクスポートが必要):
+ * 箱庭諸島２の Worker エントリ (Gateway) を組み立てるファクトリ。
+ * 利用側は次のように Worker を構成する (DO クラスは wrangler.jsonc の class_name で、
+ * `CachedPages` は wrangler.jsonc の `exports` で名前解決されるため、利用側のエントリから
+ * 再エクスポートが必要):
  *
  * ```ts
  * import { createWorker } from "@hakoniwajs/cloudflare";
- * export { HakoniwaGame } from "@hakoniwajs/cloudflare";
+ * export { CachedPages, HakoniwaGame } from "@hakoniwajs/cloudflare";
  * export default createWorker();
  * ```
  */
 export function createWorker(options: CreateWorkerOptions = {}): HakoniwaWorker {
-  const resolved: Required<CreateWorkerOptions> = {
-    doBinding: options.doBinding ?? "GAME",
-    locationHint: options.locationHint ?? "apac-ne",
-  };
+  const resolved = resolveGameStubOptions(options);
   return {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
       const snapshotRes = await tryServeFromSnapshot(request, env, ctx, resolved);
       if (snapshotRes !== undefined) {
         return snapshotRes;
+      }
+      const plan = planGatewayRequest(request);
+      const cachedPages = cachedPagesOf(ctx);
+      if (plan.kind === "cached" && cachedPages !== undefined) {
+        const response = await cachedPages({ props: plan.props }).fetch(plan.url, {
+          method: plan.method,
+          headers: plan.headers,
+          cf: { cacheKey: plan.cacheKey },
+        });
+        return toBrowserResponse(response);
       }
       return withBypassHeader(await getGame(env, resolved).fetch(request));
     },
@@ -269,4 +267,4 @@ export function createWorker(options: CreateWorkerOptions = {}): HakoniwaWorker 
 // このリポジトリ自身のデプロイ用エントリ (root の wrangler.jsonc が main に指す)。
 export default createWorker();
 
-export { HakoniwaGame };
+export { CachedPages, HakoniwaGame };

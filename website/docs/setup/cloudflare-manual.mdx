@@ -18,12 +18,12 @@ sidebar:
 npm install @hakoniwajs/cloudflare wrangler
 ```
 
-Worker のエントリ (`src/worker.ts`) は、`@hakoniwajs/cloudflare` が提供する Worker と Durable Object をそのまま export するだけです。
+Worker のエントリ (`src/worker.ts`) は、`@hakoniwajs/cloudflare` が提供する Worker・Durable Object・キャッシュ用のエントリポイント (`CachedPages`) をそのまま export するだけです。
 
 ```ts src/worker.ts
 import { createWorker } from "@hakoniwajs/cloudflare";
 
-export { HakoniwaGame } from "@hakoniwajs/cloudflare";
+export { CachedPages, HakoniwaGame } from "@hakoniwajs/cloudflare";
 
 export default createWorker();
 ```
@@ -38,6 +38,12 @@ export default createWorker();
   "compatibility_flags": ["nodejs_compat"],
   // ゲームの静的ファイル (画像・CSS) は @hakoniwajs/core パッケージ内の public/ から配信する
   "assets": { "directory": "./node_modules/@hakoniwajs/core/public" },
+  // Workers Cache。入口 (default) は無効にし、CachedPages だけ有効にする
+  "cache": { "enabled": true },
+  "exports": {
+    "default": { "type": "worker", "cache": { "enabled": false } },
+    "CachedPages": { "type": "worker", "cache": { "enabled": true } },
+  },
   "durable_objects": {
     "bindings": [{ "name": "GAME", "class_name": "HakoniwaGame" }],
   },
