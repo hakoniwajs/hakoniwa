@@ -7,7 +7,7 @@ sidebar:
 
 ## Workers Cache と `no-store` の方針
 
-Cloudflare Workers 版は、Cache API (`caches.default`) を自前で呼ぶ代わりに、[Workers Cache](https://developers.cloudflare.com/workers/cache/) (`wrangler.jsonc` の `cache.enabled: true`) を使います。応答の `Cache-Control` に従って Cloudflare 側が自動でキャッシュする機能で、`*.workers.dev` のデフォルトドメインでも有効です。
+Cloudflare Workers 版は、Cache API (`caches.default`) を自前で呼ぶ代わりに、[Workers Cache](https://developers.cloudflare.com/workers/cache/) (`wrangler.jsonc` の `cache.enabled: true`) を使います。応答の `Cache-Control` に従って Cloudflare 側が自動でキャッシュする機能で、`*.workers.dev` のデフォルトドメインでも有効です。Workers Cache (`cache.enabled: true`) を有効にすると静的アセットへのリクエストも Workers のリクエストとして課金対象になりますが、この設定は以前から有効なため、ログイン中のページのキャッシュを足した変更の前後で課金条件は変わりません。
 
 Workers Cache は `Cache-Control` の無い応答もヒューリスティックにキャッシュし、しかも Cookie 付きのリクエストをバイパスしません。そのため、セッションに依存する HTML が他人に配信されないよう、`packages/core/src/web/app.tsx` の `defaultCacheControlMiddleware` が **すべての応答に既定で `Cache-Control: private, no-store` を付け**、ルートが明示的に `Cache-Control` を設定している場合だけそちらを優先します。
 

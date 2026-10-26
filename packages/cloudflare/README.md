@@ -46,6 +46,8 @@ export default createWorker();
 }
 ```
 
+Workers Cache (`cache.enabled: true`) を有効にすると静的アセットへのリクエストも Workers のリクエストとして課金対象になりますが、この設定は以前から有効なため、ログイン中のページのキャッシュを足した変更の前後で課金条件は変わりません。
+
 必須の secret はありません。`HAKONIWA_AUTH_SECRET` は未設定なら初回起動時に自動生成して Durable Object に保存します。管理者は、デプロイ後にログインして `/admin/setup` を開き、Workers のログに出力されるセットアップコードを入力すると登録できます (`HAKONIWA_ADMIN_EMAILS` で指定しておくこともできます)。X / Discord ログインや Resend などの秘密情報を使う場合は `wrangler secret put <NAME>` で登録してください。設定項目の一覧は [環境変数一覧](https://hakoniwajs.github.io/hakoniwa/setup/environment-variables/) を参照してください。
 
 ## API
