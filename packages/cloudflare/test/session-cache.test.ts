@@ -55,6 +55,28 @@ function cookieValue(cookieHeader: string, name: string): string | undefined {
   return undefined;
 }
 
+/** `Set-Cookie` の名前 (`hako.session_data` や分割時の `hako.session_data.0`)。 */
+function setCookieName(setCookie: string): string {
+  const end = setCookie.indexOf("=");
+  return end === -1 ? setCookie : setCookie.slice(0, end);
+}
+
+/**
+ * `hako.session_data` が 1 件だけで、分割 (`hako.session_data.0` など) されておらず、
+ * `Set-Cookie` 全体のバイト長が `limit` 未満なら、そのバイト数を返す。
+ */
+function assertSingleSessionDataCookie(response: Response, limit: number): number {
+  const cookies = response.headers.getSetCookie().filter((value) => {
+    const name = setCookieName(value);
+    return name === "hako.session_data" || name.startsWith("hako.session_data.");
+  });
+  expect(cookies.map(setCookieName)).toEqual(["hako.session_data"]);
+  const bytes = new TextEncoder().encode(cookies[0] ?? "").length;
+  expect(bytes).toBeGreaterThan(0);
+  expect(bytes).toBeLessThan(limit);
+  return bytes;
+}
+
 function replaceCookie(cookieHeader: string, name: string, value: string): string {
   return cookieHeader
     .split(";")
@@ -329,6 +351,37 @@ describe("Gateway (ログイン中のページ)", () => {
     );
     expect(recording.calls).toHaveLength(1);
     expect(await res.text()).toContain("あたらしいなまえさん");
+  });
+
+  it("hako.session_data は分割されず、Set-Cookie は 4096 バイト未満 (表示名が最長のときも)", async () => {
+    // ブラウザの Cookie 1 件の上限の目安。better-auth はこれを超える手前で
+    // hako.session_data.0 のように分割する。
+    const limit = 4096;
+    const loginRes = await mainGameStub().fetch("http://example.com/auth/dev", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "email=admin%40example.com",
+      redirect: "manual",
+    });
+    const loginBytes = assertSingleSessionDataCookie(loginRes, limit);
+    const cookie = cookieHeaderFrom(loginRes);
+    const adminRes = await mainGameStub().fetch("http://example.com/admin", {
+      headers: { cookie },
+    });
+    const csrfToken = (await adminRes.text()).match(/name="_csrf" value="([^"]+)"/)?.[1];
+    if (csrfToken === undefined) {
+      throw new Error("csrf token not found");
+    }
+    // アカウント設定の表示名入力は maxlength=32 (views/account.tsx)。画面から入れられる最長。
+    const longName = "あ".repeat(32);
+    const renamed = await mainGameStub().fetch("http://example.com/account/name", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: `name=${encodeURIComponent(longName)}&_csrf=${encodeURIComponent(csrfToken)}`,
+    });
+    expect(renamed.status).toBe(200);
+    const renamedBytes = assertSingleSessionDataCookie(renamed, limit);
+    expect(renamedBytes).toBeGreaterThan(loginBytes);
   });
 
   it("CachedPages はセッションの props でも、Cookie キャッシュが有効なら public で返す", async () => {
