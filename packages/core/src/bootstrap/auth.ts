@@ -9,8 +9,12 @@
 //   だけで、二重実装になる)。isAdminEmail は `.invalid` で終わるメールを常に除外するため、
 //   このプレースホルダは管理者判定から除外される。
 // - tmp/12-workers-adapter.md「Deploy to Cloudflare ボタン」節: HAKONIWA_BASE_URL は省略可能。
-//   未設定なら baseURL を渡さず (リクエストから推定させる)、trustedOrigins はリクエストの
-//   オリジンを返す関数にする。
+//   未設定なら baseURL を渡さない。better-auth の HTTP handler (`auth.handler`) はリクエストから
+//   推定するが、`auth.api.*` (POST /auth/magic-link の signInMagicLink など) は推定しない。
+//   空の baseURL のまま magic-link プラグインが `new URL(ctx.context.baseURL)` して
+//   `TypeError: Invalid URL string.` になる。hooks.before で、呼び出しに渡された Request の
+//   オリジン (`new URL(request.url).origin`) をその呼び出しの baseURL にする。
+//   trustedOrigins はリクエストのオリジンを返す関数にする。
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { getCookies } from "better-auth/cookies";
@@ -150,8 +154,15 @@ export function createAuth(input: CreateAuthInput) {
       ...(auth.devLogin ? [devLoginPlugin()] : []),
     ],
     hooks: {
-      // 管理画面で無効化されたログイン方法を、better-auth のエンドポイント側でも拒否する。
       before: createAuthMiddleware(async (ctx) => {
+        // HAKONIWA_BASE_URL 未設定時だけ。設定済みの baseURL は上書きしない。
+        // 共有の AuthContext は書き換えず、この呼び出し用のコピー (dispatch が展開したもの) だけを更新する。
+        if (auth.baseUrl === undefined && ctx.request !== undefined) {
+          const origin = new URL(ctx.request.url).origin;
+          const basePath = ctx.context.options.basePath || "/api/auth";
+          ctx.context.baseURL = basePath === "/" ? origin : `${origin}${basePath}`;
+        }
+        // 管理画面で無効化されたログイン方法を、better-auth のエンドポイント側でも拒否する。
         const method = authMethodOf({ path: ctx.path, params: ctx.params, body: ctx.body });
         if (method !== undefined && !authMethods.enabled()[method]) {
           throw new APIError("FORBIDDEN", { message: "このログイン方法は現在無効です。" });

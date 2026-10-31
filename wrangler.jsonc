@@ -53,8 +53,8 @@
   //   wrangler secret put HAKONIWA_DISCORD_CLIENT_SECRET
   //   wrangler secret put HAKONIWA_RESEND_API_KEY
   "vars": {
-    // HAKONIWA_BASE_URL は通常不要 (better-auth がリクエストから baseURL/trustedOrigins を
-    // 推定する)。カスタムドメインや逆プロキシ配下で明示したい場合だけここに追加する:
+    // HAKONIWA_BASE_URL は通常不要 (未設定ならリクエストのオリジンを baseURL として使う。
+    // workers.dev のままなら設定しない)。カスタムドメインや逆プロキシ配下で明示したい場合だけここに追加する:
     //   "HAKONIWA_BASE_URL": "https://hakoniwa.example.com",
     // 管理者は、デプロイ後にログインして /admin/setup を開き、Workers のログに出力される
     // セットアップコードを入力すると登録できる (以後は管理画面の「管理者」節で追加・削除する)。
