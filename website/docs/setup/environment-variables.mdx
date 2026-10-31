@@ -15,7 +15,7 @@ Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wra
 | --- | --- | --- | --- |
 | `HAKONIWA_AUTH_SECRET` | なし (自動生成) | ログインのセッションと CSRF トークンの鍵。未設定なら初回起動時にランダムな値を生成してデータベースに保存します。明示する場合は `openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列 | secret |
 | `HAKONIWA_ADMIN_EMAILS` | なし | 管理者とみなすメールアドレス (カンマ区切り)。管理画面の「管理者」で追加した管理者に加えて、常に管理者として扱われます | vars |
-| `HAKONIWA_BASE_URL` | なし (リクエストから自動判定) | 公開 URL。OAuth のコールバックと Origin 検査に使います。カスタムドメインやリバースプロキシ配下で明示したいときだけ設定します | vars |
+| `HAKONIWA_BASE_URL` | なし (リクエストから自動判定) | 公開 URL。OAuth のコールバック、メールログインのリンク、Origin 検査に使います。未設定のときはリクエストのオリジンを使います。カスタムドメインやリバースプロキシ配下で明示したいときだけ設定します | vars |
 | `HAKONIWA_X_CLIENT_ID` / `HAKONIWA_X_CLIENT_SECRET` | なし | 両方設定すると X (Twitter) ログインが使えるようになります | secret |
 | `HAKONIWA_DISCORD_CLIENT_ID` / `HAKONIWA_DISCORD_CLIENT_SECRET` | なし | 両方設定すると Discord ログインが使えるようになります | secret |
 | `HAKONIWA_RESEND_API_KEY` | なし | メールログインのメール送信 (Resend)。未設定ならログにリンクを出力するだけになります | secret |

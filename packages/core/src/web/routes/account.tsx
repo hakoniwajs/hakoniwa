@@ -7,6 +7,7 @@ import type { WebDeps } from "../deps.ts";
 import type { AppEnv } from "../env.ts";
 import { parseStringBody } from "../forms/common.ts";
 import { parseEmailForm, parseNameForm, parseUnlinkForm } from "../forms/account-forms.ts";
+import { betterAuthServerCall } from "../better-auth-request.ts";
 import { renderPage } from "./render.tsx";
 import { AccountPage } from "../views/account.tsx";
 import { ErrorPage } from "../views/messages.tsx";
@@ -80,7 +81,7 @@ export function createAccountRoutes(deps: WebDeps): Hono<AppEnv> {
     try {
       const { headers, response } = await deps.auth.api.linkSocialAccount({
         body: { provider: PROVIDER_MAP[provider], callbackURL: "/account" },
-        headers: c.req.raw.headers,
+        ...betterAuthServerCall(c),
         returnHeaders: true,
       });
       forwardSetCookie(c, headers);
@@ -119,7 +120,7 @@ export function createAccountRoutes(deps: WebDeps): Hono<AppEnv> {
     try {
       await deps.auth.api.changeEmail({
         body: { newEmail: email, callbackURL: "/account" },
-        headers: c.req.raw.headers,
+        ...betterAuthServerCall(c),
       });
     } catch (err) {
       return renderAuthApiError(c, deps, err);
