@@ -7,7 +7,7 @@ sidebar:
 
 ## Workers Cache と `no-store` の方針
 
-Cloudflare Workers 版は、Cache API (`caches.default`) を自前で呼ぶ代わりに、[Workers Cache](https://developers.cloudflare.com/workers/cache/) (`wrangler.jsonc` の `cache.enabled: true`) を使います。応答の `Cache-Control` に従って Cloudflare 側が自動でキャッシュする機能で、`*.workers.dev` のデフォルトドメインでも有効です。Workers Cache (`cache.enabled: true`) を有効にすると静的アセットへのリクエストも Workers のリクエストとして課金対象になりますが、この設定は以前から有効なため、ログイン中のページのキャッシュを足した変更の前後で課金条件は変わりません。
+Cloudflare Workers 版は、Cache API (`caches.default`) を自前で呼ぶ代わりに、[Workers Cache](https://developers.cloudflare.com/workers/cache/) (`wrangler.jsonc` の `cache.enabled: true`) を使います。応答の `Cache-Control` に従って Cloudflare 側が自動でキャッシュする機能で、`*.workers.dev` のデフォルトドメインでも有効です。Workers Cache (`cache.enabled: true`) を有効にすると静的アセットへのリクエストも Workers のリクエストとして課金対象になります。
 
 Workers Cache は `Cache-Control` の無い応答もヒューリスティックにキャッシュし、しかも Cookie 付きのリクエストをバイパスしません。そのため、セッションに依存する HTML が他人に配信されないよう、`packages/core/src/web/app.tsx` の `defaultCacheControlMiddleware` が **すべての応答に既定で `Cache-Control: private, no-store` を付け**、ルートが明示的に `Cache-Control` を設定している場合だけそちらを優先します。
 
@@ -123,5 +123,3 @@ DO には better-auth の Cookie だけを渡し、クエリはトップの `not
 - purge に失敗しても (上限に達した場合など)、サイト設定の変更などの管理操作は成功のままにします。失敗はログに残し、settings 表の `cache.purge_pending` に印を置いて、Cron (`checkTurn`、15 分ごと) でやり直します。終了済みの現在のゲームのページは 60 秒で切れるため、やり直しまでのあいだも 1 年は残りません
 - バックアップの復元は、purge に失敗したら復元自体を中止します。印は残しません (データは変わっていないため)。purge の API が無い環境では、キャッシュが無いので復元を続行します
 - Node.js 版は `cachePurger` を渡さないため、何もしません
-
-以前のバージョンの KV スナップショットキャッシュ (`SNAPSHOT` バインディング、`HAKONIWA_SNAPSHOT_TTL_*`) は廃止しました。既存のデプロイに設定が残っていても無視されます。
