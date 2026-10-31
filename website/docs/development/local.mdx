@@ -42,7 +42,7 @@ vp run dev
 
 X / Discord ログインを試す場合は、OAuth アプリのコールバック URL に `http://localhost:5173/api/auth/callback/twitter` (または `.../discord`) を登録してください ([ログイン方法の設定](/setup/login-methods))。メールログインは `HAKONIWA_RESEND_API_KEY` を設定しない限り、コンソールにリンクを出力するだけです。
 
-データベースのスキーマは起動時に自動でマイグレーションされます。ただし初期のスキーマ (v1) で作られたデータベースファイルが残っている場合は互換性が無いため、`vp run --filter ./packages/node cli -- db reset --yes` で削除してから初期化し直してください。
+データベースのスキーマは起動時に自動でマイグレーションされます。
 
 ## `wrangler dev`
 
