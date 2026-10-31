@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.1.6](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.5...v0.1.6) - 2026-10-31
+
+- hako.session_data が分割されず 4096 バイト未満であることをテストする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/34
+- Workers Cache 有効時は静的アセットも課金対象になることを書く by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/33
+- ドキュメントから以前のバージョンに関する言及を削る by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/36
+
 ## [v0.1.5](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.4...v0.1.5) - 2026-10-24
 
 - テンプレート追従で npm registry への反映待ちがタイムアウトしないようにする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/23
