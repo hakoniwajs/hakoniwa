@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.1.6](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.5...v0.1.6) - 2026-11-01
+
+- hako.session_data が分割されず 4096 バイト未満であることをテストする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/34
+- Workers Cache 有効時は静的アセットも課金対象になることを書く by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/33
+- ドキュメントから以前のバージョンに関する言及を削る by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/36
+- キャッシュ説明で wrangler.jsonc の追加設定は不要と明記する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/37
+- メールログインの baseURL を Cloudflare はリクエスト origin、Node は HAKONIWA_BASE_URL にする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/38
+- server.ts と dev.ts も HAKONIWA_BASE_URL 未設定なら一行で終了する by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/39
+- Fail the Vite dev server at startup when HAKONIWA_BASE_URL is unset by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/40
+- Patch dependency advisories from pnpm and website audits by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/41
+- Make HAKONIWA_BASE_URL optional when Node listens on loopback by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/42
+- Clear remaining dev-only audit advisories with major upgrades by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/43
+
 ## [v0.1.5](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.4...v0.1.5) - 2026-10-24
 
 - テンプレート追従で npm registry への反映待ちがタイムアウトしないようにする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/23
