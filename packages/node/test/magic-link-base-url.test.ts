@@ -1,6 +1,6 @@
 // Node 版は HAKONIWA_BASE_URL を必須にする。Host ヘッダからリクエスト URL が決まるため、
 // 未設定のままリクエストの origin をマジックリンクに使うと、リンク先を差し替えられる。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildDeps,
   FakeBackupStore,
@@ -12,6 +12,11 @@ import {
 import { runCli } from "../src/cli.ts";
 import { loadNodeConfig } from "../src/config.ts";
 import { NodeSqliteDriver } from "../src/driver.ts";
+import { startServer } from "../src/serve.ts";
+
+vi.mock("../src/serve.ts", () => ({
+  startServer: vi.fn(),
+}));
 
 const AUTH_SECRET = "a".repeat(32);
 
@@ -40,7 +45,7 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
     expect(() => loadNodeConfig({ HAKONIWA_BASE_URL: "" })).toThrow(/HAKONIWA_BASE_URL/);
   });
 
-  it("未設定のまま hakoniwa を起動すると、設定例を含むエラーで止まる", async () => {
+  it("未設定のまま db status を実行すると終了コード 1 で止まる", async () => {
     const code = await runCli(
       ["db", "status"],
       {},
@@ -68,6 +73,40 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
     const text = errLines.join("\n");
     expect(text).toContain("HAKONIWA_BASE_URL");
     expect(text).toContain("http://localhost:5173");
+  });
+
+  it("server.ts は未設定なら同じメッセージだけを出して終了コード 1 で止まる", async () => {
+    vi.stubEnv("HAKONIWA_BASE_URL", "");
+    const errors: unknown[][] = [];
+    const errorSpy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      errors.push(args);
+    });
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`exit:${code ?? ""}`);
+    }) as typeof process.exit);
+    let expected = "";
+    try {
+      loadNodeConfig({ HAKONIWA_BASE_URL: "" });
+    } catch (err) {
+      expected = err instanceof Error ? err.message : String(err);
+    }
+
+    let importError: unknown;
+    try {
+      await import("../src/server.ts");
+    } catch (err) {
+      importError = err;
+    } finally {
+      errorSpy.mockRestore();
+      exitSpy.mockRestore();
+      vi.unstubAllEnvs();
+    }
+
+    expect(importError).toEqual(new Error("exit:1"));
+    expect(errors).toEqual([[expected]]);
+    expect(expected).toContain("HAKONIWA_BASE_URL");
+    expect(expected).not.toContain("\n");
+    expect(startServer).not.toHaveBeenCalled();
   });
 
   it("設定されていれば、リクエストの Host ではなくその URL でリンクを作る", async () => {
