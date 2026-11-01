@@ -4,16 +4,21 @@
 import type { AppEnv } from "@hakoniwajs/core";
 import type { Hono } from "hono";
 
+import { HAKONIWA_BASE_URL_REQUIRED_MESSAGE } from "./base-url-required.ts";
 import { composeNode } from "./compose.ts";
 import { loadNodeConfig, type NodeConfig } from "./config.ts";
 
-// 設定不足 (HAKONIWA_BASE_URL など) は server.ts / hakoniwa serve と同様、
+// 非ループバックで HAKONIWA_BASE_URL が無ければ、server.ts / hakoniwa serve と同様、
 // スタックトレースではなくメッセージだけを stderr へ出して終了コード 1 で止める。
-// Vite は dev.ts を最初のリクエストまで読み込まないため、同じ検査を
-// dev-server-guard.ts が listen 前にも行う。ここはリクエスト時の保険。
+// Vite は dev.ts を最初のリクエストまで読み込まない。dev-server-guard.ts が listen 前に
+// 検査し、ループバックなら実際のポートで HAKONIWA_BASE_URL を process.env に入れる。
+// ここはそれが無いときの保険 (Host ヘッダからは決めない)。
 let config: NodeConfig;
 try {
   config = loadNodeConfig();
+  if (config.auth.baseUrl === undefined) {
+    throw new Error(HAKONIWA_BASE_URL_REQUIRED_MESSAGE);
+  }
 } catch (err) {
   console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
