@@ -8,12 +8,13 @@
 //   そのため `mapProfileToUser` によるプレースホルダ生成は指定しない (指定しても上書きされる
 //   だけで、二重実装になる)。isAdminEmail は `.invalid` で終わるメールを常に除外するため、
 //   このプレースホルダは管理者判定から除外される。
-// - HAKONIWA_BASE_URL の省略は Cloudflare 版だけ (inferBaseUrlFromRequest)。
+// - リクエストの origin から baseURL を推定するのは Cloudflare 版だけ (inferBaseUrlFromRequest)。
 //   Node 版は Host ヘッダから c.req.url が決まるため、リクエストの origin を baseURL にすると
-//   マジックリンクのリンク先を乗っ取られる。Node 版は loadNodeConfig が baseURL を必須にする。
-//   未設定のまま `auth.api.signInMagicLink` を呼ぶと magic-link プラグインが
-//   `new URL(ctx.context.baseURL)` で落ちる。推定を許すアダプタだけ、hooks.before で
-//   Request のオリジン (`new URL(request.url).origin`) をその呼び出しの baseURL にする。
+//   マジックリンクのリンク先を乗っ取られる。Node 版は loadNodeConfig / 開発サーバーが
+//   具体的な baseURL を入れる (設定値、またはループバック待ち受けの http://localhost:<ポート>)。
+//   非ループバックで未設定なら listen 前に止まる。未設定のまま `auth.api.signInMagicLink` を呼ぶと
+//   magic-link プラグインが `new URL(ctx.context.baseURL)` で落ちる。推定を許すアダプタだけ、
+//   hooks.before で Request のオリジン (`new URL(request.url).origin`) をその呼び出しの baseURL にする。
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { getCookies } from "better-auth/cookies";

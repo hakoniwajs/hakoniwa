@@ -1,7 +1,9 @@
-// Node 版は HAKONIWA_BASE_URL を必須にする。Host ヘッダからリクエスト URL が決まるため、
-// 未設定のままリクエストの origin をマジックリンクに使うと、リンク先を差し替えられる。
-import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+// Node 版は、非ループバック待ち受けで HAKONIWA_BASE_URL が無いと listen 前に止まる。
+// Host ヘッダからリクエスト URL が決まるため、未設定のままリクエストの origin を
+// マジックリンクに使うと、リンク先を差し替えられる。ループバックだけ http://localhost:<port>。
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   buildDeps,
@@ -43,28 +45,44 @@ function setupApp(baseUrl: string) {
 }
 
 describe("Node 版の HAKONIWA_BASE_URL", () => {
-  it("未設定なら loadNodeConfig が起動前にエラーにする", () => {
-    expect(() => loadNodeConfig({})).toThrow(/HAKONIWA_BASE_URL/);
+  it("未設定かつ待ち受け先が非ループバックなら loadNodeConfig が起動前にエラーにする", () => {
+    expect(() => loadNodeConfig({})).toThrow(/非ループバック/);
     expect(() => loadNodeConfig({ HAKONIWA_BASE_URL: "" })).toThrow(/HAKONIWA_BASE_URL/);
+    expect(() => loadNodeConfig({ HAKONIWA_HOST: "0.0.0.0" })).toThrow(/HAKONIWA_BASE_URL/);
+    expect(() => loadNodeConfig({ HAKONIWA_HOST: "::" })).toThrow(/HAKONIWA_BASE_URL/);
   });
 
-  it("未設定のまま db status を実行すると終了コード 1 で止まる", async () => {
-    const code = await runCli(
-      ["db", "status"],
-      {},
-      {
-        stdout: () => {},
-        stderr: () => {},
-      },
-    );
-    expect(code).toBe(1);
+  it("HTTP を配信しないコマンドは、未設定ならループバックの既定 URL で動く", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "hakoniwa-cli-base-url-"));
+    try {
+      const lines: string[] = [];
+      const code = await runCli(
+        ["db", "status"],
+        {
+          HAKONIWA_DB_PATH: join(dir, "hakoniwa.sqlite"),
+          HAKONIWA_BACKUP_DIR: join(dir, "backups"),
+          HAKONIWA_AUTH_SECRET: AUTH_SECRET,
+          PORT: "4321",
+        },
+        {
+          stdout: (line) => {
+            lines.push(line);
+          },
+          stderr: () => {},
+        },
+      );
+      expect(code).toBe(0);
+      expect(lines.join("\n")).toContain("未初期化");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
-  it("未設定のエラーメッセージに、何を設定すればよいか書いてある", async () => {
+  it("未設定のエラーメッセージは、非ループバックでは公開 URL が必要だと一行で言う", async () => {
     const errLines: string[] = [];
     const code = await runCli(
       ["serve"],
-      {},
+      { HAKONIWA_HOST: "0.0.0.0" },
       {
         stdout: () => {},
         stderr: (line) => {
@@ -75,11 +93,13 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
     expect(code).toBe(1);
     const text = errLines.join("\n");
     expect(text).toContain("HAKONIWA_BASE_URL");
-    expect(text).toContain("http://localhost:5173");
+    expect(text).toContain("非ループバック");
+    expect(text).not.toContain("\n");
   });
 
   it("server.ts は未設定なら同じメッセージだけを出して終了コード 1 で止まる", async () => {
     vi.stubEnv("HAKONIWA_BASE_URL", "");
+    vi.stubEnv("HAKONIWA_HOST", "");
     const errors: unknown[][] = [];
     const errorSpy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
       errors.push(args);
@@ -89,7 +109,7 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
     }) as typeof process.exit);
     let expected = "";
     try {
-      loadNodeConfig({ HAKONIWA_BASE_URL: "" });
+      loadNodeConfig({ HAKONIWA_BASE_URL: "", HAKONIWA_HOST: "" });
     } catch (err) {
       expected = err instanceof Error ? err.message : String(err);
     }
@@ -112,7 +132,7 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
     expect(startServer).not.toHaveBeenCalled();
   });
 
-  it("開発サーバーは listen 前に同じメッセージで終了コード 1 になる", () => {
+  it("開発サーバーは非ループバックなら listen 前に同じメッセージで終了コード 1 になる", () => {
     vi.stubEnv("VITEST", "");
     vi.stubEnv("HAKONIWA_BASE_URL", "");
     const errors: unknown[][] = [];
@@ -124,27 +144,61 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
     }) as typeof process.exit);
     let expected = "";
     try {
-      loadNodeConfig({ HAKONIWA_BASE_URL: "" });
+      loadNodeConfig({ HAKONIWA_BASE_URL: "", HAKONIWA_HOST: "0.0.0.0" });
     } catch (err) {
       expected = err instanceof Error ? err.message : String(err);
     }
 
     const plugin = hakoniwaDevServerGuardPlugin();
-    let caught: unknown;
     try {
-      plugin.configureServer({ config: { mode: "development" } });
-    } catch (err) {
-      caught = err;
+      for (const host of ["0.0.0.0", "::", true] as const) {
+        expect(() => {
+          plugin.configureServer({ config: { mode: "development", server: { host } } });
+        }).toThrow(new Error("exit:1"));
+      }
     } finally {
       errorSpy.mockRestore();
       exitSpy.mockRestore();
       vi.unstubAllEnvs();
     }
 
-    expect(caught).toEqual(new Error("exit:1"));
-    expect(errors).toEqual([[expected]]);
+    expect(errors).toEqual([[expected], [expected], [expected]]);
     expect(expected).toContain("HAKONIWA_BASE_URL");
+    expect(expected).toContain("非ループバック");
     expect(expected).not.toContain("\n");
+  });
+
+  it("開発サーバーはループバックなら実際に束縛したポートを公開 URL にする", () => {
+    vi.stubEnv("VITEST", "");
+    vi.stubEnv("HAKONIWA_BASE_URL", "");
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`exit:${code ?? ""}`);
+    }) as typeof process.exit);
+    const plugin = hakoniwaDevServerGuardPlugin();
+    let onListening: (() => void) | undefined;
+    try {
+      plugin.configureServer({
+        config: { mode: "development", server: { host: undefined, port: 5173 } },
+        httpServer: {
+          listening: false,
+          address: () => ({ port: 5174 }),
+          once: (event, listener) => {
+            if (event === "listening") onListening = listener;
+          },
+        },
+      });
+      expect(exitSpy).not.toHaveBeenCalled();
+      expect(process.env.HAKONIWA_BASE_URL).toBe("");
+      onListening?.();
+      expect(process.env.HAKONIWA_BASE_URL).toBe("http://localhost:5174");
+
+      vi.stubEnv("HAKONIWA_BASE_URL", "https://keep.example");
+      onListening?.();
+      expect(process.env.HAKONIWA_BASE_URL).toBe("https://keep.example");
+    } finally {
+      exitSpy.mockRestore();
+      vi.unstubAllEnvs();
+    }
   });
 
   it("開発サーバーの検査はテストと build では動かない", () => {
@@ -174,53 +228,6 @@ describe("Node 版の HAKONIWA_BASE_URL", () => {
       vi.unstubAllEnvs();
     }
   });
-
-  it("pnpm dev は未設定なら listen する前に同じメッセージで終了する", async () => {
-    let expected = "";
-    try {
-      loadNodeConfig({});
-    } catch (err) {
-      expected = err instanceof Error ? err.message : String(err);
-    }
-    const env = { ...process.env };
-    delete env.HAKONIWA_BASE_URL;
-    delete env.VITEST;
-    const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
-      (resolve, reject) => {
-        const child = spawn("pnpm", ["dev"], {
-          cwd: fileURLToPath(new URL("..", import.meta.url)),
-          env,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-        let stdout = "";
-        let stderr = "";
-        child.stdout.setEncoding("utf8");
-        child.stderr.setEncoding("utf8");
-        child.stdout.on("data", (chunk: string) => {
-          stdout += chunk;
-        });
-        child.stderr.on("data", (chunk: string) => {
-          stderr += chunk;
-        });
-        const timer = setTimeout(() => {
-          child.kill("SIGTERM");
-          reject(new Error(`timed out\nstdout:${stdout}\nstderr:${stderr}`));
-        }, 12_000);
-        child.on("error", (err) => {
-          clearTimeout(timer);
-          reject(err);
-        });
-        child.on("exit", (code) => {
-          clearTimeout(timer);
-          resolve({ code, stdout, stderr });
-        });
-      },
-    );
-    expect(result.code).toBe(1);
-    expect(result.stderr).toContain(expected);
-    expect(result.stdout).not.toContain("Local:");
-    expect(expected).not.toContain("\n");
-  }, 20_000);
 
   it("設定されていれば、リクエストの Host ではなくその URL でリンクを作る", async () => {
     const { app, mailer } = setupApp("http://localhost:5173");

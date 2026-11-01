@@ -4,8 +4,9 @@
 // このミドルウェアより前で処理が終わるため、ここでは対象にならない
 // (better-auth 自身は trustedOrigins で Origin を検証する)。
 // 加えて Origin ヘッダがあれば HAKONIWA_BASE_URL のオリジンと比較する (除外ルートも含む)。
-// Node 版は loadNodeConfig が HAKONIWA_BASE_URL を必須にする。Cloudflare 版は省略でき、
-// baseUrl が未設定の場合はリクエスト URL のオリジン (`new URL(c.req.url).origin`) と比較する。
+// Node 版はループバックなら http://localhost:<ポート>、それ以外は HAKONIWA_BASE_URL を
+// 起動前に決める。Cloudflare 版は省略でき、baseUrl が未設定の場合はリクエスト URL の
+// オリジン (`new URL(c.req.url).origin`) と比較する。
 import type { Context, MiddlewareHandler } from "hono";
 import { createCsrfToken, verifyCsrfToken } from "../../bootstrap/csrf.ts";
 import type { SiteSettingsReader } from "../../app/site-settings.ts";

@@ -47,6 +47,7 @@ function setup(options: SetupOptions = {}): Ctx {
     debug,
     siteDefaults: defaultSiteSettings,
     port: 0,
+    listenHost: undefined,
     dbPath: ":memory:",
     backupDir,
     turnCheckIntervalSec: 0,

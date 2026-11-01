@@ -75,7 +75,7 @@ const HELP_TEXT = `hakoniwa CLI
 
   -h, --help             このヘルプを表示する
 
-環境変数は @hakoniwajs/core の loadConfigFromEnv と config.ts (HAKONIWA_DB_PATH 等) を参照する。
+環境変数は @hakoniwajs/core の loadConfigFromEnv と config.ts (HAKONIWA_DB_PATH、HAKONIWA_HOST 等) を参照する。
 `;
 
 const SEASON_STATE_LABELS: Record<SeasonState, string> = {
@@ -410,7 +410,7 @@ export async function runCli(
   const rest = positionals.slice(1);
 
   // serve は DB を開かずプロセスを持続させるため、通常コマンドの compose/close と分ける。
-  // 設定不足 (HAKONIWA_BASE_URL など) は listen する前に stderr へ出して止める。
+  // 非ループバックで HAKONIWA_BASE_URL が無ければ listen する前に stderr へ出して止める。
   if (command === "serve") {
     let config;
     try {
@@ -426,7 +426,8 @@ export async function runCli(
 
   let node: ComposedNode | undefined;
   try {
-    const config = loadNodeConfig(env);
+    // HTTP で待ち受けない。未設定の公開 URL は http://localhost:<port> にする。
+    const config = loadNodeConfig(env, { listen: false });
     node = composeNode(config);
 
     switch (command) {
