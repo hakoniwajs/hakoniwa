@@ -2,7 +2,7 @@
 // :memory: の実 SQLite (node:sqlite) + 実 better-auth インスタンスを使い、
 // devLogin / magicLink の往復、ログイン方法の設定 (settings) による拒否、
 // アカウント連携まわり (listUserAccounts, changeEmail) を検証する。
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   AuthMethodPolicy,
   FakeMailer,

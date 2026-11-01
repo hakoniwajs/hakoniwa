@@ -1,5 +1,5 @@
 // tmp/15-ng-words-and-mobile.md 「NG ワード」節のテスト。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { IGNORED_LIST_ENTRIES, findNgWord } from "./ng-words.ts";
 
 describe("findNgWord", () => {

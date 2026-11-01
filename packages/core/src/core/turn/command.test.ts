@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultConfig } from "../config.ts";
 import { CommandKind, commandSpecs, LandKind } from "../constants.ts";
 import type { Rng } from "../rng.ts";

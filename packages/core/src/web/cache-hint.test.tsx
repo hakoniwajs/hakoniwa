@@ -1,5 +1,5 @@
 // web/cache-hint.ts (エッジのキャッシュの目安のヘッダ) の確認。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { SeasonVM } from "../app/season.ts";
 import type { GameHeaderVM } from "../app/view-models.ts";
 import { CACHE_HINT_HEADER, CACHE_TAG_HINT_HEADER, pageCacheDirectives } from "./cache-hint.ts";

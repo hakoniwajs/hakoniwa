@@ -1,6 +1,6 @@
 // tmp/17-ogp.md 「テスト」節: web 層 (`/islands/:id/ogp.png` と `/islands/:id` の OGP メタタグ)。
 // tmp/18-games.md 対応で `/games/:gameId/islands/:id/ogp.png` に移った。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultSiteSettings } from "../app/site-settings.ts";
 import { loginAs, postForm, setupTestApp } from "./test-helpers.ts";
 import type { TestApp } from "./test-helpers.ts";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { authMethodOf } from "./auth-method-of.ts";
 
 describe("authMethodOf", () => {

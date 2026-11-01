@@ -43,7 +43,9 @@
     },
     "mermaid": {
       "katex": "0.18.2"
-    }
+    },
+    "glob": "14.0.3",
+    "minimatch": "11.0.3"
   },
   "engines": {
     "node": ">=22.12"

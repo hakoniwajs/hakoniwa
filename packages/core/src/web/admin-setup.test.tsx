@@ -1,5 +1,5 @@
 // 管理者の初期セットアップ (`/admin/setup`) と、管理画面「管理者」節 (`/admin/admins`) のテスト。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { loginAs, postForm, setupTestApp } from "./test-helpers.ts";
 
 const USER = { id: "u1", name: "うんようしゃ", email: "owner@example.com" };

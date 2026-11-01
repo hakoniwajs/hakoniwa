@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { FakeSettingsRepository } from "../app/fake-repository.ts";
 import { AUTH_SECRET_SETTINGS_KEY, resolveAuthSecret } from "./auth-secret.ts";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { b, com, disaster, escapeHtml, islandName, name, point } from "./markup.ts";
 
 describe("escapeHtml", () => {

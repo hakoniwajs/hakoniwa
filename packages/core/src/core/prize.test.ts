@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { monsters, PrizeFlag, prizeNames } from "./constants.ts";
 import {
   flagPrizes,

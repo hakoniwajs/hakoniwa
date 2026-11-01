@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { LandKind } from "../constants.ts";
 import { neighbor } from "../geometry.ts";
 import { makeTestContext, makeTestIsland } from "../test-helpers.ts";

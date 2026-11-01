@@ -1,6 +1,6 @@
 // X / Discord の連携ボタンが各社のブランドロゴ (公式 SVG) を表示することの確認を含む、
 // GET /account のテスト。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { loginAs, setupTestApp } from "./test-helpers.ts";
 
 describe("GET /account", () => {

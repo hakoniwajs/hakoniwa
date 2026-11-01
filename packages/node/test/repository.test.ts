@@ -10,7 +10,7 @@ import {
   defaultConfig,
 } from "@hakoniwajs/core";
 import type { CreateGameInput, GameRepository, Island } from "@hakoniwajs/core";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { NodeSqliteDriver } from "../src/driver.ts";
 
 function makeIsland(id: number, name: string): Island {

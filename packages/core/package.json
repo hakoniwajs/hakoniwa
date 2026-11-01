@@ -41,7 +41,6 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
-    "omggif": "^1.0.10",
-    "vitest": "4.1.12"
+    "omggif": "^1.0.10"
   }
 }

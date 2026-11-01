@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CommandKind, LandKind } from "../constants.ts";
 import { createTerrain } from "../terrain.ts";
 import type { Command } from "../types.ts";

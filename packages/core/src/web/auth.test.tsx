@@ -1,6 +1,6 @@
 // X / Discord のログインボタンが各社のブランドロゴ (公式 SVG) を表示することの確認を含む、
 // GET /login のテスト。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { setupTestApp } from "./test-helpers.ts";
 
 describe("GET /login", () => {

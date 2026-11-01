@@ -1,5 +1,5 @@
 // tmp/17-ogp.md 「テスト」節: render.ts の画素と偽装ルールを検証する。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultConfig } from "../core/config.ts";
 import { LandKind } from "../core/constants.ts";
 import { makeNewIsland } from "../core/island.ts";

@@ -3,22 +3,17 @@ packages:
 
 # pnpm 12 は package.json の pnpm.overrides を読まない。推移依存のパッチはここ。
 overrides:
-  # vite-plus は依存名 vite を @voidzero-dev/vite-plus-core に差し替えている。
-  # 全体の vite を上書きすると `vp build` が壊れるので、実際の vite を使う親だけ上げる。
-  "vitest>vite": 8.3.3
-  "@vitest/mocker>vite": 8.3.3
-  "@vitest/browser>vite": 8.3.3
-  "@cloudflare/vite-plugin>vite": 8.3.3
-  vitest: 4.1.12
-  "@vitest/browser": 4.1.12
-  "@vitest/browser-preview": 4.1.12
-  "@vitest/expect": 4.1.12
-  "@vitest/mocker": 4.1.12
-  "@vitest/pretty-format": 4.1.12
-  "@vitest/runner": 4.1.12
-  "@vitest/snapshot": 4.1.12
-  "@vitest/spy": 4.1.12
-  "@vitest/utils": 4.1.12
+  # vite-plus 1.x は依存名 vite を @voidzero-dev/vite-plus-core に揃える。
+  # `vite@*` は semver 範囲だけを catalog に寄せる。同梱 Vite は 8.3.5 なので、
+  # 0.3 のときに実体の vite を親パッケージ別に上げていた上書きはもう要らない。
+  vite@*: "catalog:"
+  # vitest はワークスペース全体では上書きしない。vite-plus 1.4.0 が vitest 5.0.5 を
+  # 直接依存し、packages/cloudflare は @cloudflare/vitest-pool-workers@0.22.0 が
+  # 受け付ける vitest 4.1.12 のままにする (vitest 5 ではプールが起動しない)。
+  # @hono/vite-dev-server@0.26.1 (最新) は @hono/node-server ^1.19.11 と minimatch ^9 を引く。
+  # node-server >=2.1.3 に依存するリリースは無いので、この親だけ上げる。
+  "@hono/vite-dev-server>@hono/node-server": "^2.1.5"
+  "@hono/vite-dev-server>minimatch": ">=11.0.1"
   source-map-js: 1.2.2
   undici: 7.30.1
   sharp: 0.35.5
@@ -29,3 +24,14 @@ overrides:
 allowBuilds:
   esbuild: true
   workerd: true
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vitest: 5.0.5
+  vite-plus: 1.4.0
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: "*"
+    vitest: "*"
