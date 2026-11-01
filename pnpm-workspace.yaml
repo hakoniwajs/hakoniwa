@@ -1,6 +1,29 @@
 packages:
   - "packages/*"
 
+# pnpm 12 は package.json の pnpm.overrides を読まない。推移依存のパッチはここ。
+overrides:
+  # vite-plus は依存名 vite を @voidzero-dev/vite-plus-core に差し替えている。
+  # 全体の vite を上書きすると `vp build` が壊れるので、実際の vite を使う親だけ上げる。
+  "vitest>vite": 8.3.3
+  "@vitest/mocker>vite": 8.3.3
+  "@vitest/browser>vite": 8.3.3
+  "@cloudflare/vite-plugin>vite": 8.3.3
+  vitest: 4.1.12
+  "@vitest/browser": 4.1.12
+  "@vitest/browser-preview": 4.1.12
+  "@vitest/expect": 4.1.12
+  "@vitest/mocker": 4.1.12
+  "@vitest/pretty-format": 4.1.12
+  "@vitest/runner": 4.1.12
+  "@vitest/snapshot": 4.1.12
+  "@vitest/spy": 4.1.12
+  "@vitest/utils": 4.1.12
+  source-map-js: 1.2.2
+  undici: 7.30.1
+  sharp: 0.35.5
+  zod: 4.6.6
+
 # packages/cloudflare (wrangler/@cloudflare/vite-plugin) が使うネイティブバイナリの取得に必要。
 # pnpm 11+ では onlyBuiltDependencies → allowBuilds にリネームされている
 allowBuilds:
