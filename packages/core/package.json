@@ -31,7 +31,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/check-node-esm-import.mjs",
     "generate:ogp-tiles": "node --experimental-strip-types scripts/generate-ogp-tiles.ts"
   },
   "dependencies": {
