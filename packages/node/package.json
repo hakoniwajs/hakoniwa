@@ -41,8 +41,7 @@
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.26.1",
-    "@types/node": "24.13.6",
-    "vitest": "4.1.12"
+    "@types/node": "24.13.6"
   },
   "engines": {
     "node": ">=22.13"

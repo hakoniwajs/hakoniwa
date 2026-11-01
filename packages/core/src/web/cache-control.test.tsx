@@ -3,7 +3,7 @@
 // createApp の defaultCacheControlMiddleware がすべての応答に既定 `private, no-store` を
 // 付けることを確認する (ルートが明示した Cache-Control はそちらが優先されることは
 // islands-ogp.test.tsx の OGP 画像テストで確認済み)。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { loginAs, postForm, setupTestApp } from "./test-helpers.ts";
 
 describe("既定の Cache-Control (private, no-store)", () => {

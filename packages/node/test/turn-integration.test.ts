@@ -11,7 +11,7 @@ import {
   migrate,
 } from "@hakoniwajs/core";
 import type { AppConfig, AuthUser, Point, Terrain } from "@hakoniwajs/core";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { NodeSqliteDriver } from "../src/driver.ts";
 
 function user(id: string): AuthUser {

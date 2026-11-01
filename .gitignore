@@ -8,3 +8,4 @@ data/
 # wrangler dev のローカル用秘密情報 (root に置く。wrangler.jsonc と同じ場所)。
 .dev.vars
 **/dist-check
+.vitest/

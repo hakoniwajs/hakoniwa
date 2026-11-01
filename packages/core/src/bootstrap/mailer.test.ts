@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { FakeLogger } from "../app/fake-repository.ts";
 import { ConsoleMailer, ResendMailer } from "./mailer.ts";
 

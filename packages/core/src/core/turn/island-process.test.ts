@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultConfig } from "../config.ts";
 import type { DisasterConfig, GameConfig } from "../config.ts";
 import { LandKind, PrizeFlag, prizeNames } from "../constants.ts";

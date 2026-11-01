@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultConfig } from "../config.ts";
 import { makeTestIsland } from "../test-helpers.ts";
 import { income } from "./income.ts";

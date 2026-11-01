@@ -1,7 +1,7 @@
 // public/remaining.js (残り時間をブラウザで表示する補助スクリプト) が、サーバー側の
 // formatRemaining (app/format.ts) と同じ表記を出すことの確認。スクリプトを最小限の
 // document のスタブの上で実行する。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import remainingScript from "../../public/remaining.js?raw";
 import { formatRemaining } from "../app/format.ts";
 

@@ -9,7 +9,7 @@ import {
   loadConfigFromEnv,
   migrate,
 } from "@hakoniwajs/core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { NodeSqliteDriver } from "../src/driver.ts";
 
 function build(driver: NodeSqliteDriver, env: Record<string, string | undefined>) {

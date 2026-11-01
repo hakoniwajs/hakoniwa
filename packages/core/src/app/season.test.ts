@@ -1,6 +1,6 @@
 // tmp/16-season.md 「状態判定」節 + tmp/18-games.md 「定義」節 +
 // tmp/16-season.md「開始前の状態 = ターン 0 (改訂 2026-09-20)」節のテスト。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { GameMeta } from "./ports.ts";
 import { buildSeasonVM, isBeforeStart, isFinished } from "./season.ts";
 

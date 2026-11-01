@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultConfig } from "../core/config.ts";
 import { createSeededRng } from "../core/rng.ts";
 import { makeTestIsland } from "../core/test-helpers.ts";

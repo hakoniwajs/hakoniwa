@@ -12,7 +12,7 @@ import {
   SCHEMA_VERSION,
   SqliteGameRepository,
 } from "@hakoniwajs/core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { NodeSqliteDriver } from "../src/driver.ts";
 
 /**

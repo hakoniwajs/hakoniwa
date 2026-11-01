@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { currentGameId, currentMeta, loginAs, postForm, setupTestApp } from "./test-helpers.ts";
 import type { TestApp } from "./test-helpers.ts";
 

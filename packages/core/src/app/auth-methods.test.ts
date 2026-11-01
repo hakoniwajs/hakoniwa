@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { AuthMethodPolicy } from "./auth-methods.ts";
 import type { SettingsRepository } from "./ports.ts";
 

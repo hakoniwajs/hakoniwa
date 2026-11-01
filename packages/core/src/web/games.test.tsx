@@ -1,6 +1,6 @@
 // tmp/18-games.md「ルート」節: GET /games (一覧)、旧 URL のリダイレクト、複数ゲームのライフサイクル
 // (終了 → 新しいゲーム開始 → 過去のゲームは読み取り専用) の web 層テスト。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { currentGameId, loginAs, postForm, setupTestApp } from "./test-helpers.ts";
 import type { TestApp } from "./test-helpers.ts";
 

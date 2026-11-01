@@ -1,7 +1,7 @@
 // tmp/17-ogp.md 「テスト」節: png.ts の PNG シグネチャ・チャンク構成・CRC・画素を検証する。
 // packages/core は node:* を import できない (root vite.config.ts の lint 制約) ため、
 // `node:zlib` ではなく `DecompressionStream` で展開して検証する。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { encodePng } from "./png.ts";
 
 function readUint32BE(bytes: Uint8Array, offset: number): number {

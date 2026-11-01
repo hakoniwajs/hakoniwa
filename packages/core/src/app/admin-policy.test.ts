@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   ADMIN_EMAILS_SETTINGS_KEY,
   ADMIN_SETUP_CODE_SETTINGS_KEY,

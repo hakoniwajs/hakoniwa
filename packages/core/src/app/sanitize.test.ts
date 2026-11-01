@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { cutColumn, isBadIslandName, sanitizeText, stripControlAndComma } from "./sanitize.ts";
 
 describe("stripControlAndComma", () => {

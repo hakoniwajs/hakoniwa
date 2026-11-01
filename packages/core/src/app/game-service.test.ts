@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { AuthUser } from "./auth.ts";
 import { defaultConfig } from "../core/config.ts";
 import { CommandKind, LandKind } from "../core/constants.ts";

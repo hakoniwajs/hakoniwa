@@ -1,5 +1,5 @@
 // authCookieNames: better-auth の Cookie 名 (`__Secure-` の有無) が baseUrl に従って決まること。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { authCookieNames } from "./auth.ts";
 import { loadConfigFromEnv } from "./config-from-env.ts";
 

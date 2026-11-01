@@ -1,5 +1,5 @@
 // tmp/16-season.md 「タイムゾーン」節のテスト。Asia/Tokyo (固定 +9、DST なし) と UTC の両方を検証する。
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { formatDateTime, formatDateTimeLocalValue, parseLocalDateTime } from "./timezone.ts";
 
 describe("parseLocalDateTime", () => {

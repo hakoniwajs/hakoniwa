@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultSiteSettings } from "../app/site-settings.ts";
 import { defaultConfig } from "../core/config.ts";
 import { loadConfigFromEnv } from "./config-from-env.ts";

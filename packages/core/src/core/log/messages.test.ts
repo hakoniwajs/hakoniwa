@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { defaultConfig } from "../config.ts";
 import { LogCollector } from "./collector.ts";
 import * as messages from "./messages.ts";
