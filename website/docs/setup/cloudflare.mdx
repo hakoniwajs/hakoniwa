@@ -81,4 +81,4 @@ Worker の設定 (環境変数と secret) は、Cloudflare ダッシュボード
 
 ## 表示の速さ (キャッシュ)
 
-トップページ・観光ページ・ゲーム一覧・開発画面は、Cloudflare の [Workers Cache](https://developers.cloudflare.com/workers/cache/) に自動でキャッシュされます (ログイン中のページはセッションごとに分けてキャッシュします)。追加の設定は不要です。Workers Cache を使うには、`src/worker.ts` で `CachedPages` を再エクスポートします (`export { CachedPages, HakoniwaGame } from "@hakoniwajs/cloudflare";`)。仕組みは [キャッシュの仕組み](/development/cache) を参照してください。Workers Cache (`cache.enabled: true`) を有効にすると静的アセットへのリクエストも Workers のリクエストとして課金対象になります。
+トップページ・観光ページ・ゲーム一覧・開発画面は、Cloudflare の [Workers Cache](https://developers.cloudflare.com/workers/cache/) に自動でキャッシュされます (ログイン中のページはセッションごとに分けてキャッシュします)。`wrangler.jsonc` の追加設定は不要です。Workers Cache を使うには、`src/worker.ts` で `CachedPages` を再エクスポートします (`export { CachedPages, HakoniwaGame } from "@hakoniwajs/cloudflare";`)。仕組みは [キャッシュの仕組み](/development/cache) を参照してください。Workers Cache (`cache.enabled: true`) を有効にすると静的アセットへのリクエストも Workers のリクエストとして課金対象になります。
