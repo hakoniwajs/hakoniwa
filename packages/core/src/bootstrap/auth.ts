@@ -8,9 +8,12 @@
 //   そのため `mapProfileToUser` によるプレースホルダ生成は指定しない (指定しても上書きされる
 //   だけで、二重実装になる)。isAdminEmail は `.invalid` で終わるメールを常に除外するため、
 //   このプレースホルダは管理者判定から除外される。
-// - tmp/12-workers-adapter.md「Deploy to Cloudflare ボタン」節: HAKONIWA_BASE_URL は省略可能。
-//   未設定なら baseURL を渡さず (リクエストから推定させる)、trustedOrigins はリクエストの
-//   オリジンを返す関数にする。
+// - HAKONIWA_BASE_URL の省略は Cloudflare 版だけ (inferBaseUrlFromRequest)。
+//   Node 版は Host ヘッダから c.req.url が決まるため、リクエストの origin を baseURL にすると
+//   マジックリンクのリンク先を乗っ取られる。Node 版は loadNodeConfig が baseURL を必須にする。
+//   未設定のまま `auth.api.signInMagicLink` を呼ぶと magic-link プラグインが
+//   `new URL(ctx.context.baseURL)` で落ちる。推定を許すアダプタだけ、hooks.before で
+//   Request のオリジン (`new URL(request.url).origin`) をその呼び出しの baseURL にする。
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { getCookies } from "better-auth/cookies";
@@ -72,6 +75,11 @@ export interface CreateAuthInput {
    * 省略時は無効 (Node 版)。
    */
   sessionCookieCache?: boolean;
+  /**
+   * true なら、`HAKONIWA_BASE_URL` が未設定のときリクエストのオリジンを better-auth の baseURL にする。
+   * Cloudflare 版だけが渡す。Node 版は Host ヘッダを信用できないので省略 (false) のままにする。
+   */
+  inferBaseUrlFromRequest?: boolean;
 }
 
 /** `AppConfig.auth` から better-auth インスタンスを組み立てる。 */
@@ -81,10 +89,9 @@ export function createAuth(input: CreateAuthInput) {
   const naming = cookieNamingOptions(config);
 
   return betterAuth({
-    // baseUrl が未設定なら baseURL を渡さない (better-auth がリクエストから推定する)。
-    // trustedOrigins も同様に、baseUrl があれば固定の配列、無ければリクエストのオリジンを
-    // 返す関数にする (better-auth の trustedOrigins は関数形をサポートしている。
-    // node_modules/@better-auth/core の型定義で確認済み)。
+    // baseUrl が未設定なら baseURL を渡さない。推定を許すアダプタだけ hooks.before で
+    // リクエストのオリジンを入れる。trustedOrigins は、baseUrl があれば固定の配列、
+    // 無ければリクエストのオリジンを返す関数にする (better-auth は関数形をサポートしている)。
     ...(naming.baseURL !== undefined ? { baseURL: naming.baseURL } : {}),
     basePath: "/api/auth",
     secret,
@@ -150,8 +157,19 @@ export function createAuth(input: CreateAuthInput) {
       ...(auth.devLogin ? [devLoginPlugin()] : []),
     ],
     hooks: {
-      // 管理画面で無効化されたログイン方法を、better-auth のエンドポイント側でも拒否する。
       before: createAuthMiddleware(async (ctx) => {
+        // 設定済みの baseURL は上書きしない。推定はアダプタが明示したときだけ。
+        // 共有の AuthContext は書き換えず、この呼び出し用のコピー (dispatch が展開したもの) だけを更新する。
+        if (
+          input.inferBaseUrlFromRequest === true &&
+          auth.baseUrl === undefined &&
+          ctx.request !== undefined
+        ) {
+          const origin = new URL(ctx.request.url).origin;
+          const basePath = ctx.context.options.basePath || "/api/auth";
+          ctx.context.baseURL = basePath === "/" ? origin : `${origin}${basePath}`;
+        }
+        // 管理画面で無効化されたログイン方法を、better-auth のエンドポイント側でも拒否する。
         const method = authMethodOf({ path: ctx.path, params: ctx.params, body: ctx.body });
         if (method !== undefined && !authMethods.enabled()[method]) {
           throw new APIError("FORBIDDEN", { message: "このログイン方法は現在無効です。" });

@@ -3,6 +3,7 @@
 // Hono app 組み立て。
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { AppError } from "../app/errors.ts";
 import type { WebDeps } from "./deps.ts";
 import type { AppEnv } from "./env.ts";
@@ -120,6 +121,11 @@ export function createApp(deps: WebDeps): Hono<AppEnv> {
       );
     }
     // 想定外のエラー。Perl 版 tempProblem 相当。
+    // HTTPException は Hono が意図して投げたものなのでログしない。応答の中身は変えない。
+    // logger ではなく console.error にする。Worker のログ (wrangler tail) に必ず残すため。
+    if (!(err instanceof HTTPException)) {
+      console.error("想定外のエラー", err);
+    }
     return renderPage(c, deps, <ErrorPage message="問題発生、とりあえず戻ってください。" />, 500);
   });
 

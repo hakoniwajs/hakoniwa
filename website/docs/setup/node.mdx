@@ -20,6 +20,7 @@ npx hakoniwa serve
 
 `@hakoniwajs/node` をインストールすると `hakoniwa` コマンドが使えるようになり、`serve` サブコマンドで HTTP サーバーが起動します (既定のポートは 3000。`PORT` で変更できます)。
 
+- `HAKONIWA_BASE_URL` は必須です。ブラウザで開く URL を設定してください。`npx hakoniwa serve` の既定ポートなら `HAKONIWA_BASE_URL=http://localhost:3000` です。メールログインのリンクと OAuth のコールバックに使います
 - データベースは既定で `./data/hakoniwa.sqlite` に作られます (`HAKONIWA_DB_PATH` で変更できます)
 - ログインのセッションなどに使う秘密鍵 (`HAKONIWA_AUTH_SECRET`) は、未設定なら初回の起動時に自動で生成されてデータベースに保存されます
 - 最初の管理者は、ログインしてから `/admin/setup` を開き、サーバーのコンソールに出力されるセットアップコードを入力すると登録できます。`HAKONIWA_ADMIN_EMAILS=you@example.com` のように環境変数で指定しておくこともできます
@@ -28,7 +29,7 @@ npx hakoniwa serve
 
 ## 公開する
 
-サーバー自体は HTTPS を扱いません。インターネットに公開する場合は、nginx や Caddy などのリバースプロキシを前段に置いて HTTPS を終端してください。カスタムドメインやリバースプロキシの配下で動かす場合は、`HAKONIWA_BASE_URL` に公開 URL を設定してください。
+サーバー自体は HTTPS を扱いません。インターネットに公開する場合は、nginx や Caddy などのリバースプロキシを前段に置いて HTTPS を終端し、`HAKONIWA_BASE_URL` にはブラウザで開く公開 URL を設定してください。
 
 ## ゲームを開始する
 

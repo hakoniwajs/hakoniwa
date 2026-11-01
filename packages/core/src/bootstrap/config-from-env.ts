@@ -13,9 +13,9 @@ export interface OAuthClientConfig {
 
 export interface AuthConfig {
   /**
-   * 未設定なら better-auth がリクエストから baseURL/trustedOrigins を推定する
-   * (bootstrap/auth.ts, web/middleware/csrf.tsx 参照)。カスタムドメインや逆プロキシ配下で
-   * 明示したい場合だけ HAKONIWA_BASE_URL を設定する。
+   * 公開 URL。Node.js 版は `loadNodeConfig` が必須にする。Cloudflare 版は省略でき、
+   * 未設定なら `inferBaseUrlFromRequest` によりリクエストのオリジンを better-auth の
+   * baseURL にする (bootstrap/auth.ts)。カスタムドメインや逆プロキシ配下では公開 URL を設定する。
    */
   baseUrl?: string;
   /**

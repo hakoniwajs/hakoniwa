@@ -29,6 +29,13 @@ function parseInteger(name: string, raw: string | undefined, fallback: number): 
 /** `process.env` (既定) から Node Adapter 用の設定一式を組み立てる。 */
 export function loadNodeConfig(env: Record<string, string | undefined> = process.env): NodeConfig {
   const appConfig = loadConfigFromEnv(env);
+  // Node は Host ヘッダからリクエスト URL が決まる。未設定のまま起動すると、マジックリンクの
+  // リンク先を Host で差し替えられる。Cloudflare 版はここを通らない。
+  if (appConfig.auth.baseUrl === undefined) {
+    throw new Error(
+      "loadNodeConfig: HAKONIWA_BASE_URL が未設定です。Node.js 版では公開 URL が必要です。開発サーバーなら HAKONIWA_BASE_URL=http://localhost:5173、hakoniwa serve の既定ポートなら HAKONIWA_BASE_URL=http://localhost:3000 を設定してください。公開するときは、ブラウザで開く URL を設定してください。",
+    );
+  }
   const port = parseInteger("PORT", env.PORT, 3000);
   const dbPath = env.HAKONIWA_DB_PATH ?? "./data/hakoniwa.sqlite";
   const backupDir = env.HAKONIWA_BACKUP_DIR ?? "./data/backups";

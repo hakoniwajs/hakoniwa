@@ -410,8 +410,16 @@ export async function runCli(
   const rest = positionals.slice(1);
 
   // serve は DB を開かずプロセスを持続させるため、通常コマンドの compose/close と分ける。
+  // 設定不足 (HAKONIWA_BASE_URL など) は listen する前に stderr へ出して止める。
   if (command === "serve") {
-    startServer(loadNodeConfig(env));
+    let config;
+    try {
+      config = loadNodeConfig(env);
+    } catch (err) {
+      io.stderr(err instanceof Error ? err.message : String(err));
+      return 1;
+    }
+    startServer(config);
     // サーバーが生きている間この Promise は解決しない (シグナルハンドラが process.exit する)。
     return new Promise<number>(() => {});
   }

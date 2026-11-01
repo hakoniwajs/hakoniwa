@@ -50,6 +50,10 @@ export class HakoniwaGame extends DurableObject<Env> {
         config,
         cacheHints: true,
         sessionCookieCache: true,
+        // Workers ではリクエスト URL をプラットフォームが決める。HAKONIWA_BASE_URL が
+        // 無いときだけ、そのオリジンを better-auth の baseURL にする。Node 版は渡さない
+        // (Host ヘッダでマジックリンクのリンク先を差し替えられるため)。
+        inferBaseUrlFromRequest: true,
         cachePurger: purger,
       });
     });
