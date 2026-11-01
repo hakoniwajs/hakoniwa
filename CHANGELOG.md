@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.1.7](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.6...v0.1.7) - 2026-11-01
+
+- Fix Node ESM import of published @hakoniwajs/core by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/44
+
 ## [v0.1.6](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.5...v0.1.6) - 2026-11-01
 
 - hako.session_data が分割されず 4096 バイト未満であることをテストする by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/34
