@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import devServer from "@hono/vite-dev-server";
 import { defineConfig } from "vite-plus";
 import type { PluginOption } from "vite-plus";
+import { hakoniwaDevServerGuardPlugin } from "./dev-server-guard.ts";
 
 // tmp/09-tooling.md packages/node の vite.config.ts。
 // dev: `@hono/vite-dev-server` が src/dev.ts の default export (Hono app) を SSR ランナーで動かす。
@@ -15,7 +16,11 @@ import type { PluginOption } from "vite-plus";
 // `Excessive stack depth` で落ちる (再帰的な Plugin 型同士の比較)。`unknown` 経由のキャストで
 // この型の同一性チェックを回避する (実行時の挙動は変わらない)。
 export default defineConfig({
-  plugins: [devServer({ entry: "src/dev.ts" })] as unknown as PluginOption[],
+  // dev.ts は最初のリクエストまで評価されない。ガードを先に置き、listen 前に設定不足で止める。
+  plugins: [
+    hakoniwaDevServerGuardPlugin(),
+    devServer({ entry: "src/dev.ts" }),
+  ] as unknown as PluginOption[],
   publicDir: fileURLToPath(new URL("../core/public", import.meta.url)),
   build: {
     ssr: true,

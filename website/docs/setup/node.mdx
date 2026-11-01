@@ -20,7 +20,7 @@ npx hakoniwa serve
 
 `@hakoniwajs/node` をインストールすると `hakoniwa` コマンドが使えるようになり、`serve` サブコマンドで HTTP サーバーが起動します (既定のポートは 3000。`PORT` で変更できます)。
 
-- `HAKONIWA_BASE_URL` は必須です。ブラウザで開く URL を設定してください。`npx hakoniwa serve` の既定ポートなら `HAKONIWA_BASE_URL=http://localhost:3000` です。メールログインのリンクと OAuth のコールバックに使います
+- `HAKONIWA_BASE_URL` は必須です。以前の版では省略できましたが、Node.js 版では破壊的変更として起動に必要です。未設定だとエラーを出して終了します。ブラウザで開く URL を設定してください。`npx hakoniwa serve` の既定ポートなら `HAKONIWA_BASE_URL=http://localhost:3000` です。メールログインのリンクと OAuth のコールバックに使います
 - データベースは既定で `./data/hakoniwa.sqlite` に作られます (`HAKONIWA_DB_PATH` で変更できます)
 - ログインのセッションなどに使う秘密鍵 (`HAKONIWA_AUTH_SECRET`) は、未設定なら初回の起動時に自動で生成されてデータベースに保存されます
 - 最初の管理者は、ログインしてから `/admin/setup` を開き、サーバーのコンソールに出力されるセットアップコードを入力すると登録できます。`HAKONIWA_ADMIN_EMAILS=you@example.com` のように環境変数で指定しておくこともできます

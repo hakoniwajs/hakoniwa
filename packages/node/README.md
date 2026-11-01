@@ -8,10 +8,12 @@ Node.js 22.13 以上が必要です。
 
 ```console
 $ npm install @hakoniwajs/node
-$ npx hakoniwa serve
+$ HAKONIWA_BASE_URL=http://localhost:3000 npx hakoniwa serve
 ```
 
 `http://localhost:3000/` でゲームが起動します (DB は既定で `./hakoniwa.db` に作成されます)。
+
+`HAKONIWA_BASE_URL` は Node.js 版では必須です。未設定のまま `hakoniwa serve` を実行すると、エラーを出して終了します。以前の版では省略でき、リクエストのオリジンを公開 URL にしていました (破壊的変更)。Cloudflare 版は未設定ならリクエストのオリジンを使います。
 
 ### CLI
 
@@ -27,6 +29,7 @@ $ npx hakoniwa backup list|create|restore|delete
 
 | 変数                    | 内容                                                                          |
 | ----------------------- | ----------------------------------------------------------------------------- |
+| `HAKONIWA_BASE_URL`     | 必須。公開 URL。既定ポートなら `http://localhost:3000`                        |
 | `HAKONIWA_AUTH_SECRET`  | 任意。セッション署名・CSRF の鍵。未設定なら初回起動時に自動生成して DB に保存 |
 | `HAKONIWA_DB_PATH`      | SQLite DB のパス (既定 `./hakoniwa.db`)                                       |
 | `HAKONIWA_PUBLIC_DIR`   | 静的アセットのパス (既定は同梱の `@hakoniwajs/core/public`)                   |

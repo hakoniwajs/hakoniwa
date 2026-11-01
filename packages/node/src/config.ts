@@ -2,6 +2,7 @@
 // @hakoniwajs/core の loadConfigFromEnv に Node 固有の設定 (DB パス、ポート等) を足す。
 import { loadConfigFromEnv } from "@hakoniwajs/core";
 import type { AppConfig } from "@hakoniwajs/core";
+import { HAKONIWA_BASE_URL_REQUIRED_MESSAGE } from "./base-url-required.ts";
 
 export interface NodeConfig extends AppConfig {
   port: number;
@@ -32,9 +33,7 @@ export function loadNodeConfig(env: Record<string, string | undefined> = process
   // Node は Host ヘッダからリクエスト URL が決まる。未設定のまま起動すると、マジックリンクの
   // リンク先を Host で差し替えられる。Cloudflare 版はここを通らない。
   if (appConfig.auth.baseUrl === undefined) {
-    throw new Error(
-      "loadNodeConfig: HAKONIWA_BASE_URL が未設定です。Node.js 版では公開 URL が必要です。開発サーバーなら HAKONIWA_BASE_URL=http://localhost:5173、hakoniwa serve の既定ポートなら HAKONIWA_BASE_URL=http://localhost:3000 を設定してください。公開するときは、ブラウザで開く URL を設定してください。",
-    );
+    throw new Error(HAKONIWA_BASE_URL_REQUIRED_MESSAGE);
   }
   const port = parseInteger("PORT", env.PORT, 3000);
   const dbPath = env.HAKONIWA_DB_PATH ?? "./data/hakoniwa.sqlite";
