@@ -35,13 +35,13 @@
     "generate:ogp-tiles": "node --experimental-strip-types scripts/generate-ogp-tiles.ts"
   },
   "dependencies": {
-    "better-auth": "1.7.6",
-    "hono": "^4.13.9",
+    "better-auth": "1.7.7",
+    "hono": "^4.13.11",
     "naughty-words": "1.2.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "omggif": "^1.0.10",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   }
 }
