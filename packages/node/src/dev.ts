@@ -9,6 +9,8 @@ import { loadNodeConfig, type NodeConfig } from "./config.ts";
 
 // 設定不足 (HAKONIWA_BASE_URL など) は server.ts / hakoniwa serve と同様、
 // スタックトレースではなくメッセージだけを stderr へ出して終了コード 1 で止める。
+// Vite は dev.ts を最初のリクエストまで読み込まないため、同じ検査を
+// dev-server-guard.ts が listen 前にも行う。ここはリクエスト時の保険。
 let config: NodeConfig;
 try {
   config = loadNodeConfig();

@@ -7,7 +7,7 @@ sidebar:
 
 Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wrangler.jsonc` の `vars` か secret (`wrangler secret put` やダッシュボード) に設定します。
 
-Node.js 版で必須なのは `HAKONIWA_BASE_URL` だけです。それ以外は省略できます。Cloudflare 版はすべての項目を省略できます。`HAKONIWA_BASE_URL` を省略したときは、リクエストのオリジンを公開 URL として使います。ログインのための秘密鍵は、未設定なら自動で生成されます。最初の管理者は `/admin/setup` で登録できます。ほかに環境変数が必要になるのは、X / Discord ログインやメール送信のように外部サービスの secret が必要な機能を使うときです。
+Node.js 版で必須なのは `HAKONIWA_BASE_URL` だけです。それ以外は省略できます。以前の Node.js 版では `HAKONIWA_BASE_URL` も省略できましたが、これは破壊的変更です。未設定だと起動時にエラーで終了します。Cloudflare 版はすべての項目を省略できます。`HAKONIWA_BASE_URL` を省略したときは、リクエストのオリジンを公開 URL として使います。ログインのための秘密鍵は、未設定なら自動で生成されます。最初の管理者は `/admin/setup` で登録できます。ほかに環境変数が必要になるのは、X / Discord ログインやメール送信のように外部サービスの secret が必要な機能を使うときです。
 
 ## 認証・管理者
 

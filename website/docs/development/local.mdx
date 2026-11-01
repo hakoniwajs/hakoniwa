@@ -26,7 +26,7 @@ cp .env.node.example .env
 
 `.env` を開き、少なくとも次を設定してください (`HAKONIWA_AUTH_SECRET` は省略すると自動生成されます)。
 
-- `HAKONIWA_BASE_URL=http://localhost:5173`: 公開 URL。Node.js 版では必須です。開発サーバーの URL に合わせます
+- `HAKONIWA_BASE_URL=http://localhost:5173`: 公開 URL。Node.js 版では必須です (以前は省略できました。破壊的変更)。未設定のまま `vp run dev` を実行すると、起動時にエラーで終了します。開発サーバーの URL に合わせます
 - `HAKONIWA_DEV_LOGIN=true`: 開発ログインを有効にする
 - `HAKONIWA_ADMIN_EMAILS=自分のメールアドレス`: 管理画面 (`/admin`) に入れるようにする (開発ログインでそのメールアドレスを入力すれば管理者になれる)
 
