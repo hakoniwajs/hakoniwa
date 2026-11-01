@@ -7,7 +7,7 @@ sidebar:
 
 Node.js 版では環境変数 (または `.env`) に、Cloudflare 版では `wrangler.jsonc` の `vars` か secret (`wrangler secret put` やダッシュボード) に設定します。
 
-Node.js 版で必須なのは `HAKONIWA_BASE_URL` だけです。それ以外は省略できます。以前の Node.js 版では `HAKONIWA_BASE_URL` も省略できましたが、これは破壊的変更です。未設定だと起動時にエラーで終了します。Cloudflare 版はすべての項目を省略できます。`HAKONIWA_BASE_URL` を省略したときは、リクエストのオリジンを公開 URL として使います。ログインのための秘密鍵は、未設定なら自動で生成されます。最初の管理者は `/admin/setup` で登録できます。ほかに環境変数が必要になるのは、X / Discord ログインやメール送信のように外部サービスの secret が必要な機能を使うときです。
+Node.js 版で常に必須の項目はありません。`HAKONIWA_BASE_URL` は、ループバック (`localhost`、`127.0.0.0/8`、`::1`) で待ち受けるときだけ省略できます。省略すると `http://localhost:<実際のポート>` になります。開発サーバーが空いているポートへずらしたときも、そのポートを使います。リクエストの Host ヘッダからは決めません。`0.0.0.0` や `::`、LAN や公開アドレスで待ち受けるとき (Vite の `--host`、`HAKONIWA_HOST`、ホスト未指定の `hakoniwa serve`) は必須で、未設定だと起動前にエラーで終了します。値を設定したときは、待ち受け先に関係なくその URL を使います。`db` や `game` のように HTTP サーバーを起動しないコマンドは、リクエストを受け取らないので、未設定なら `http://localhost:<PORT>` (`PORT` の既定は 3000) を使います。Cloudflare 版はすべての項目を省略できます。`HAKONIWA_BASE_URL` を省略したときは、リクエストのオリジンを公開 URL として使います。ログインのための秘密鍵は、未設定なら自動で生成されます。最初の管理者は `/admin/setup` で登録できます。ほかに環境変数が必要になるのは、X / Discord ログインやメール送信のように外部サービスの secret が必要な機能を使うときです。
 
 ## 認証・管理者
 
@@ -15,7 +15,7 @@ Node.js 版で必須なのは `HAKONIWA_BASE_URL` だけです。それ以外は
 | --- | --- | --- | --- |
 | `HAKONIWA_AUTH_SECRET` | なし (自動生成) | ログインのセッションと CSRF トークンの鍵。未設定なら初回起動時にランダムな値を生成してデータベースに保存します。明示する場合は `openssl rand -base64 32` などで生成した 32 バイト以上のランダム文字列 | secret |
 | `HAKONIWA_ADMIN_EMAILS` | なし | 管理者とみなすメールアドレス (カンマ区切り)。管理画面の「管理者」で追加した管理者に加えて、常に管理者として扱われます | vars |
-| `HAKONIWA_BASE_URL` | Node.js 版は必須。Cloudflare 版はなし (リクエストのオリジン) | 公開 URL。OAuth のコールバック、メールログインのリンク、Origin 検査に使います。Node.js 版では起動に必要です (開発サーバーなら `http://localhost:5173`、`hakoniwa serve` の既定ポートなら `http://localhost:3000`)。Cloudflare 版は未設定ならリクエストのオリジンを使います。カスタムドメインやリバースプロキシでは、ブラウザで開く公開 URL を設定します | vars |
+| `HAKONIWA_BASE_URL` | Node.js 版はループバック待ち受けなら `http://localhost:<ポート>`。それ以外は必須。Cloudflare 版はなし (リクエストのオリジン) | 公開 URL。OAuth のコールバック、メールログインのリンク、Origin 検査に使います。Node.js 版でループバック (`pnpm dev` の既定、または `HAKONIWA_HOST=127.0.0.1`) のときは省略でき、実際に待ち受けたポートの `http://localhost:<ポート>` になります。非ループバックでは起動前に必要です。設定した値があるときは常にそれを使います。Cloudflare 版は未設定ならリクエストのオリジンを使います。カスタムドメインやリバースプロキシでは、ブラウザで開く公開 URL を設定します | vars |
 | `HAKONIWA_X_CLIENT_ID` / `HAKONIWA_X_CLIENT_SECRET` | なし | 両方設定すると X (Twitter) ログインが使えるようになります | secret |
 | `HAKONIWA_DISCORD_CLIENT_ID` / `HAKONIWA_DISCORD_CLIENT_SECRET` | なし | 両方設定すると Discord ログインが使えるようになります | secret |
 | `HAKONIWA_RESEND_API_KEY` | なし | メールログインのメール送信 (Resend)。未設定ならログにリンクを出力するだけになります | secret |
@@ -50,6 +50,7 @@ Node.js 版で必須なのは `HAKONIWA_BASE_URL` だけです。それ以外は
 | 環境変数 | 既定値 | 説明 |
 | --- | --- | --- |
 | `PORT` | `3000` | サーバーの待ち受けポート |
+| `HAKONIWA_HOST` | なし (全インターフェース) | `hakoniwa serve` の待ち受けアドレス。`127.0.0.1`、`localhost`、`::1` ならループバックで、`HAKONIWA_BASE_URL` を省略できます。`0.0.0.0`、`::`、LAN や公開 IP では `HAKONIWA_BASE_URL` が必須です。開発サーバー (`pnpm dev`) の待ち受けは Vite の `--host` と `server.host` で決まり、この変数は使いません |
 | `HAKONIWA_DB_PATH` | `./data/hakoniwa.sqlite` | SQLite データベースファイル |
 | `HAKONIWA_BACKUP_DIR` | `./data/backups` | バックアップの出力先 |
 | `HAKONIWA_TURN_CHECK_INTERVAL_SEC` | `60` | ターン進行を確認する間隔 (秒)。`0` で無効 |
