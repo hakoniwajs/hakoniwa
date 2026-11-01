@@ -1,7 +1,5 @@
-// HAKONIWA_BASE_URL 未設定でも POST /auth/magic-link が 500 にならないこと。
-// better-auth の magic-link は `new URL(ctx.context.baseURL)` する。baseURL を渡さない
-// `auth.api.signInMagicLink` では空文字になり TypeError になるため、リクエストの
-// オリジンを baseURL にすることをここから確認する。
+// Node 版は HAKONIWA_BASE_URL を必須にする。Host ヘッダからリクエスト URL が決まるため、
+// 未設定のままリクエストの origin をマジックリンクに使うと、リンク先を差し替えられる。
 import { describe, expect, it } from "vitest";
 import {
   buildDeps,
@@ -11,17 +9,19 @@ import {
   loadConfigFromEnv,
   migrate,
 } from "@hakoniwajs/core";
+import { runCli } from "../src/cli.ts";
+import { loadNodeConfig } from "../src/config.ts";
 import { NodeSqliteDriver } from "../src/driver.ts";
 
 const AUTH_SECRET = "a".repeat(32);
 
-function setup(baseUrl?: string) {
+function setupApp(baseUrl: string) {
   const driver = new NodeSqliteDriver(":memory:");
   migrate(driver);
   const mailer = new FakeMailer();
   const config = loadConfigFromEnv({
     HAKONIWA_AUTH_SECRET: AUTH_SECRET,
-    ...(baseUrl !== undefined ? { HAKONIWA_BASE_URL: baseUrl } : {}),
+    HAKONIWA_BASE_URL: baseUrl,
   });
   const deps = buildDeps({
     driver,
@@ -34,30 +34,50 @@ function setup(baseUrl?: string) {
   return { app: deps.app, mailer };
 }
 
-async function postMagicLink(app: ReturnType<typeof setup>["app"], url: string): Promise<Response> {
-  return await app.request(url, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ email: "magic@example.com" }),
-  });
-}
-
-describe("POST /auth/magic-link の baseURL", () => {
-  it("HAKONIWA_BASE_URL 未設定でも 500 にならず、リクエストのオリジンでリンクを作る", async () => {
-    const { app, mailer } = setup();
-    const res = await postMagicLink(app, "http://example.test/auth/magic-link");
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain("メールを送りました");
-    expect(mailer.sent).toHaveLength(1);
-    expect(mailer.lastUrl()).toMatch(/^http:\/\/example\.test\/api\/auth\/magic-link\/verify\?/);
+describe("Node 版の HAKONIWA_BASE_URL", () => {
+  it("未設定なら loadNodeConfig が起動前にエラーにする", () => {
+    expect(() => loadNodeConfig({})).toThrow(/HAKONIWA_BASE_URL/);
+    expect(() => loadNodeConfig({ HAKONIWA_BASE_URL: "" })).toThrow(/HAKONIWA_BASE_URL/);
   });
 
-  it("HAKONIWA_BASE_URL が設定されていれば、リクエストのオリジンよりその値を優先する", async () => {
-    const { app, mailer } = setup("http://configured.example:5173");
-    const res = await postMagicLink(app, "http://example.test/auth/magic-link");
-    expect(res.status).toBe(200);
-    expect(mailer.lastUrl()).toMatch(
-      /^http:\/\/configured\.example:5173\/api\/auth\/magic-link\/verify\?/,
+  it("未設定のまま hakoniwa を起動すると、設定例を含むエラーで止まる", async () => {
+    const code = await runCli(
+      ["db", "status"],
+      {},
+      {
+        stdout: () => {},
+        stderr: () => {},
+      },
     );
+    expect(code).toBe(1);
+  });
+
+  it("未設定のエラーメッセージに、何を設定すればよいか書いてある", async () => {
+    const errLines: string[] = [];
+    const code = await runCli(
+      ["serve"],
+      {},
+      {
+        stdout: () => {},
+        stderr: (line) => {
+          errLines.push(line);
+        },
+      },
+    );
+    expect(code).toBe(1);
+    const text = errLines.join("\n");
+    expect(text).toContain("HAKONIWA_BASE_URL");
+    expect(text).toContain("http://localhost:5173");
+  });
+
+  it("設定されていれば、リクエストの Host ではなくその URL でリンクを作る", async () => {
+    const { app, mailer } = setupApp("http://localhost:5173");
+    const res = await app.request("http://evil.example/auth/magic-link", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", host: "evil.example" },
+      body: new URLSearchParams({ email: "magic@example.com" }),
+    });
+    expect(res.status).toBe(200);
+    expect(mailer.lastUrl()).toMatch(/^http:\/\/localhost:5173\/api\/auth\/magic-link\/verify\?/);
   });
 });

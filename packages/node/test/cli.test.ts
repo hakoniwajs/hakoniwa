@@ -33,6 +33,7 @@ describe("cli", () => {
       HAKONIWA_BACKUP_DIR: join(dir, "backups"),
       // auth secret は未設定なら自動生成されるが、テストでは固定値を渡す。
       HAKONIWA_AUTH_SECRET: "a".repeat(32),
+      HAKONIWA_BASE_URL: "http://localhost:3000",
     };
   });
 
@@ -161,6 +162,7 @@ describe("cli (tmp/16-season.md: 開始時刻・最終ターン)", () => {
       HAKONIWA_DB_PATH: join(dir, "hakoniwa.sqlite"),
       HAKONIWA_BACKUP_DIR: join(dir, "backups"),
       HAKONIWA_AUTH_SECRET: "a".repeat(32),
+      HAKONIWA_BASE_URL: "http://localhost:3000",
     };
   });
 
@@ -255,6 +257,7 @@ describe("cli (tmp/16-season.md: ターンの長さも DB に持つ)", () => {
       HAKONIWA_DB_PATH: join(dir, "hakoniwa.sqlite"),
       HAKONIWA_BACKUP_DIR: join(dir, "backups"),
       HAKONIWA_AUTH_SECRET: "a".repeat(32),
+      HAKONIWA_BASE_URL: "http://localhost:3000",
     };
   });
 
@@ -307,6 +310,7 @@ describe("cli (tmp/18-games.md: game new/finish/list)", () => {
       HAKONIWA_DB_PATH: join(dir, "hakoniwa.sqlite"),
       HAKONIWA_BACKUP_DIR: join(dir, "backups"),
       HAKONIWA_AUTH_SECRET: "a".repeat(32),
+      HAKONIWA_BASE_URL: "http://localhost:3000",
     };
   });
 

@@ -42,6 +42,12 @@ export interface BuildDepsInput {
    * (bootstrap/session-cookie-cache.ts)。省略時は false。
    */
   sessionCookieCache?: boolean;
+  /**
+   * true なら、`HAKONIWA_BASE_URL` 未設定時にリクエストのオリジンを better-auth の baseURL にする
+   * (`createAuth` の `inferBaseUrlFromRequest`)。Cloudflare 版だけが true にする。
+   * Node 版は Host ヘッダを信用できないので省略する。
+   */
+  inferBaseUrlFromRequest?: boolean;
   /** エッジのキャッシュを消す (`WebDeps.cachePurger`。Cloudflare 版の DO が指定する)。 */
   cachePurger?: CachePurger;
 }
@@ -144,6 +150,7 @@ export function buildDeps(input: BuildDepsInput): BuiltDeps {
     mailer,
     authMethods,
     sessionCookieCache,
+    inferBaseUrlFromRequest: input.inferBaseUrlFromRequest === true,
   });
   const siteSettings = new SiteSettingsService({ settings, fallback: config.siteDefaults });
 
