@@ -1,8 +1,11 @@
 // tmp/15-ng-words-and-mobile.md 「NG ワード」節の移植。
 // naughty-words (LDNOOBW のリスト、CC-BY-4.0) の ja/en を同梱し、照合ロジックは自前で持つ。
 // ランタイム非依存 (node:* に依存しない)。
-import enWords from "naughty-words/en.json";
-import jaWords from "naughty-words/ja.json";
+// Node の ESM は JSON モジュールに import attribute を要求する。属性がないと、公開した
+// dist を `import("@hakoniwajs/core")` した時点で ERR_IMPORT_ATTRIBUTE_MISSING になる。
+// tsc (module: ESNext) はこの属性を出力に残し、Vite / Wrangler は JSON をバンドルする。
+import enWords from "naughty-words/en.json" with { type: "json" };
+import jaWords from "naughty-words/ja.json" with { type: "json" };
 
 /**
  * 誤検知が多い、または短すぎて汎用的すぎる英語エントリの除外リスト。
