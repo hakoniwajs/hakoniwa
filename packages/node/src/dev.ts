@@ -5,9 +5,18 @@ import type { AppEnv } from "@hakoniwajs/core";
 import type { Hono } from "hono";
 
 import { composeNode } from "./compose.ts";
-import { loadNodeConfig } from "./config.ts";
+import { loadNodeConfig, type NodeConfig } from "./config.ts";
 
-const config = loadNodeConfig();
+// 設定不足 (HAKONIWA_BASE_URL など) は server.ts / hakoniwa serve と同様、
+// スタックトレースではなくメッセージだけを stderr へ出して終了コード 1 で止める。
+let config: NodeConfig;
+try {
+  config = loadNodeConfig();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+}
+
 const deps = composeNode(config);
 
 // tmp/14-users-auth.md 「開発ログインの保護」節: 開発サーバーでも有効化されていることが分かるように警告する。
