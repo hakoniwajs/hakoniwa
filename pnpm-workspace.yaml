@@ -35,3 +35,15 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
+# better-auth 1.7.16 は公開直後のセキュリティリリース。pnpm の minimumReleaseAge を満たすまで
+# インストールできるよう、この更新で入ったパッケージだけ除外する。
+minimumReleaseAgeExclude:
+  - "@better-auth/core@1.7.16"
+  - "@better-auth/drizzle-adapter@1.7.16"
+  - "@better-auth/kysely-adapter@1.7.16"
+  - "@better-auth/memory-adapter@1.7.16"
+  - "@better-auth/mongo-adapter@1.7.16"
+  - "@better-auth/prisma-adapter@1.7.16"
+  - "@better-auth/telemetry@1.7.16"
+  - better-auth@1.7.16
+  - better-call@1.4.5
