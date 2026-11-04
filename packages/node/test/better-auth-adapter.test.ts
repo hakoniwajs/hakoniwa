@@ -5,9 +5,11 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   AuthMethodPolicy,
+  FakeBackupStore,
   FakeMailer,
   FakeSettingsRepository,
   betterAuthSqliteAdapter,
+  buildDeps,
   createAuth,
   loadConfigFromEnv,
   migrate,
@@ -145,6 +147,166 @@ describe("changeEmail", () => {
     const changeMail = mailer.sent.find((m) => m.to === "new@example.com");
     expect(changeMail).toBeDefined();
     expect(changeMail?.text).toContain("http");
+  });
+
+  // better-auth 1.7.16 以降、メール変更の確認リンクはセッションを作らない。
+  // ログイン中なら /account に戻り、未ログインなら /account が /login へ誘導する。
+  describe("確認リンクを開いたあとの画面 (1.7.16)", () => {
+    function setupApp() {
+      const driver = new NodeSqliteDriver(":memory:");
+      migrate(driver);
+      const mailer = new FakeMailer();
+      const config: AppConfig = loadConfigFromEnv({
+        HAKONIWA_AUTH_SECRET: AUTH_SECRET,
+        HAKONIWA_BASE_URL: "http://localhost:5173",
+        HAKONIWA_DEV_LOGIN: "true",
+        HAKONIWA_ADMIN_EMAILS: "admin@example.com",
+      });
+      const deps = buildDeps({
+        driver,
+        backupStore: new FakeBackupStore(),
+        clock: { now: () => 1_000_000 },
+        config,
+        mailer,
+      });
+      return { ...deps, driver, mailer };
+    }
+
+    function absorbCookies(response: Response, jar: Map<string, string>): void {
+      for (const setCookie of response.headers.getSetCookie()) {
+        const [pair, ...attrs] = setCookie.split(";").map((part) => part.trim());
+        const eq = pair?.indexOf("=") ?? -1;
+        if (pair === undefined || eq < 1) {
+          continue;
+        }
+        const name = pair.slice(0, eq);
+        const value = pair.slice(eq + 1);
+        const cleared = attrs.some((attr) => attr.toLowerCase() === "max-age=0");
+        if (cleared || value === "") {
+          jar.delete(name);
+        } else {
+          jar.set(name, value);
+        }
+      }
+    }
+
+    function cookieHeader(jar: Map<string, string>): string {
+      return [...jar.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
+    }
+
+    async function devLogin(app: ReturnType<typeof setupApp>["app"], email: string) {
+      const res = await app.request("http://localhost:5173/auth/dev", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ email }),
+        redirect: "manual",
+      });
+      expect(res.status).toBe(302);
+      const jar = new Map<string, string>();
+      absorbCookies(res, jar);
+      return jar;
+    }
+
+    async function requestEmailChange(
+      ctx: ReturnType<typeof setupApp>,
+      jar: Map<string, string>,
+      email: string,
+    ): Promise<string> {
+      const account = await ctx.app.request("http://localhost:5173/account", {
+        headers: { cookie: cookieHeader(jar) },
+      });
+      expect(account.status).toBe(200);
+      const html = await account.text();
+      const csrf = /name="_csrf" value="([^"]+)"/.exec(html)?.[1];
+      if (csrf === undefined) {
+        throw new Error("csrf token missing");
+      }
+      const posted = await ctx.app.request("http://localhost:5173/account/email", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: cookieHeader(jar),
+        },
+        body: new URLSearchParams({ email, _csrf: csrf }),
+      });
+      expect(posted.status).toBe(200);
+      expect(await posted.text()).toContain("確認メールを送りました");
+      const changeMail = ctx.mailer.sent.find((mail) => mail.to === email);
+      const url = changeMail?.text;
+      if (url === undefined || !url.startsWith("http")) {
+        throw new Error(`verification url missing: ${url}`);
+      }
+      return url;
+    }
+
+    async function follow(
+      app: ReturnType<typeof setupApp>["app"],
+      first: Response,
+      jar: Map<string, string>,
+    ): Promise<{ response: Response; url: URL }> {
+      let response = first;
+      let url = new URL("http://localhost:5173/");
+      for (let i = 0; i < 5 && response.status >= 300 && response.status < 400; i++) {
+        absorbCookies(response, jar);
+        const location = response.headers.get("location");
+        if (location === null) {
+          break;
+        }
+        url = new URL(location, "http://localhost:5173");
+        response = await app.request(url, {
+          redirect: "manual",
+          headers: jar.size > 0 ? { cookie: cookieHeader(jar) } : {},
+        });
+      }
+      return { response, url };
+    }
+
+    it("未ログインで開くとサインインせず、ログイン画面に着く", async () => {
+      const ctx = setupApp();
+      try {
+        const jar = await devLogin(ctx.app, "old@example.com");
+        const url = await requestEmailChange(ctx, jar, "new@example.com");
+
+        const opened = await ctx.app.request(url, { redirect: "manual" });
+        expect(opened.headers.getSetCookie().join(";")).not.toContain("hako.session_token=");
+        const landed = await follow(ctx.app, opened, new Map());
+        expect(landed.response.status).toBe(200);
+        expect(landed.url.pathname).toBe("/login");
+        expect(await landed.response.text()).toContain("ログイン");
+
+        const user = ctx.driver.get<{ email: string; emailVerified: number }>(
+          `SELECT email, emailVerified FROM "user" WHERE email = ?`,
+          "new@example.com",
+        );
+        expect(user).toEqual({ email: "new@example.com", emailVerified: 1 });
+      } finally {
+        ctx.driver.close();
+      }
+    });
+
+    it("ログイン中に開くとアカウント設定に戻り、変更後のメールを表示する", async () => {
+      const ctx = setupApp();
+      try {
+        const jar = await devLogin(ctx.app, "old@example.com");
+        const url = await requestEmailChange(ctx, jar, "new@example.com");
+
+        const opened = await ctx.app.request(url, {
+          redirect: "manual",
+          headers: { cookie: cookieHeader(jar) },
+        });
+        const landed = await follow(ctx.app, opened, jar);
+        expect(landed.response.status).toBe(200);
+        expect(landed.url.pathname).toBe("/account");
+        expect(await landed.response.text()).toContain("現在のメールアドレス: new@example.com");
+
+        const session = await ctx.auth.api.getSession({
+          headers: new Headers({ cookie: cookieHeader(jar) }),
+        });
+        expect(session?.user.email).toBe("new@example.com");
+      } finally {
+        ctx.driver.close();
+      }
+    });
   });
 });
 
