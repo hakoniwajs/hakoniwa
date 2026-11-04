@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.1.8](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.7...v0.1.8) - 2026-11-04
+
+- Bump better-auth to 1.7.16 (security release) by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/46
+
 ## [v0.1.7](https://github.com/hakoniwajs/hakoniwa/compare/v0.1.6...v0.1.7) - 2026-11-01
 
 - Fix Node ESM import of published @hakoniwajs/core by @syumai in https://github.com/hakoniwajs/hakoniwa/pull/44
